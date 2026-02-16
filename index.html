@@ -2,229 +2,168 @@
 <html lang="pt-br">
 <head>
     <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-    <title>Gemini Studio: Color Edition</title>
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, orientation=landscape">
+    <title>Digital Piano - Estúdio Profissional</title>
     <style>
-        :root { --bg: #121212; --panel: #1e1e1e; --text: #ffffff; }
-        * { box-sizing: border-box; touch-action: manipulation; }
-        body { background: var(--bg); color: var(--text); font-family: 'Segoe UI', Roboto, sans-serif; margin: 0; overflow: hidden; height: 100vh; display: flex; flex-direction: column; }
+        :root { --bg: #000; --green: #32CD32; --blue: #1E90FF; --purple: #9370DB; --pink: #FF1493; --orange: #FF8C00; }
+        * { box-sizing: border-box; -webkit-tap-highlight-color: transparent; }
+        body { background: var(--bg); color: white; font-family: 'Arial Narrow', sans-serif; margin: 0; overflow: hidden; height: 100vh; }
 
-        /* Osciloscópio */
-        #top-viz { height: 70px; background: #000; border-bottom: 2px solid #333; }
-        canvas { width: 100%; height: 100%; }
+        /* Top Bar */
+        .header { display: flex; align-items: center; justify-content: space-between; padding: 10px; background: #000; height: 60px; }
+        .btn-exit { background: #FF4500; color: white; border: none; padding: 5px 15px; border-radius: 20px; font-weight: bold; font-size: 12px; }
+        .mode-status { color: var(--green); font-weight: bold; font-size: 14px; letter-spacing: 1px; }
+        .rec-indicator { background: #333; border: 1px solid #666; padding: 5px 10px; border-radius: 15px; font-size: 10px; display: flex; align-items: center; gap: 5px; }
+        .rec-dot { width: 10px; height: 10px; background: #00BFFF; border-radius: 50%; box-shadow: 0 0 5px #00BFFF; }
 
-        /* Status */
-        .header-info { background: #000; padding: 5px 15px; display: flex; justify-content: space-between; font-size: 11px; color: #888; border-bottom: 1px solid #222; }
+        /* Sliders */
+        .controls-row { display: flex; gap: 20px; padding: 0 15px; align-items: center; height: 40px; }
+        .slider-box { flex: 1; display: flex; align-items: center; gap: 10px; font-size: 12px; font-weight: bold; }
+        input[type="range"] { flex: 1; height: 10px; accent-color: var(--green); background: #333; border-radius: 5px; appearance: none; }
 
-        /* Sequenciador */
-        #studio { flex: 1; overflow-y: auto; padding: 10px; display: flex; flex-direction: column; gap: 12px; }
-        .track { background: var(--panel); border-radius: 12px; padding: 12px; border-left: 6px solid #444; transition: 0.2s; }
-        
-        /* Cores das Trilhas (Baseado na sua imagem) */
-        .track-a { border-left-color: #00ff00; } /* Verde */
-        .track-b { border-left-color: #00d2ff; } /* Azul */
-        .track-c { border-left-color: #ff00ff; } /* Rosa */
-        .track-d { border-left-color: #ffcc00; } /* Amarelo */
+        /* Action Buttons */
+        .actions-row { display: grid; grid-template-columns: 1fr 1fr 1fr; gap: 10px; padding: 10px 15px; }
+        .action-btn { height: 45px; border: none; border-radius: 25px; color: white; font-weight: bold; font-size: 14px; text-transform: uppercase; cursor: pointer; }
+        .btn-eco { background: var(--blue); }
+        .btn-usb { background: var(--purple); }
+        .btn-mic { background: var(--pink); }
+        .instrument-select { grid-column: span 3; background: var(--orange); border-radius: 25px; height: 35px; border: none; font-weight: bold; display: flex; align-items: center; justify-content: center; gap: 10px; }
 
-        .active-edit { background: #252525; box-shadow: inset 0 0 10px rgba(255,255,255,0.05); }
-
-        .controls { display: grid; grid-template-columns: 40px 1fr 1fr; gap: 10px; align-items: center; margin-bottom: 10px; }
-        .slider-box { display: flex; flex-direction: column; font-size: 9px; color: #aaa; }
-        input[type="range"] { accent-color: white; height: 4px; }
-
-        .grid { display: grid; grid-template-columns: repeat(8, 1fr); gap: 6px; }
-        .step { 
-            height: 40px; background: #333; border-radius: 8px; border: none;
-            color: rgba(255,255,255,0.2); font-size: 10px; font-weight: bold;
-        }
-
-        /* Cores Ativas dinâmicas via JS */
-        .step.playing { border: 2px solid white; transform: scale(1.05); }
-
-        /* Footer */
-        footer { background: #000; padding: 12px; display: grid; grid-template-columns: 1fr 1fr; gap: 10px; border-top: 1px solid #333; }
-        .btn { padding: 14px; border: none; border-radius: 10px; font-weight: bold; text-transform: uppercase; font-size: 11px; cursor: pointer; }
-        .btn-play { background: #00ff00; color: #000; }
-        .btn-save { background: #00d2ff; color: #000; }
-        .btn-rec { background: #ff4444; color: #fff; grid-column: span 2; font-size: 13px; }
+        /* Keyboard */
+        .keyboard-container { position: relative; display: flex; height: calc(100vh - 200px); background: #000; padding: 2px; overflow-x: auto; }
+        .key { flex: 1; min-width: 60px; background: #081a08; border: 1px solid #111; position: relative; display: flex; align-items: flex-end; justify-content: center; padding-bottom: 10px; color: #aaa; font-size: 10px; }
+        .key.active { background: #1a4d1a; box-shadow: inset 0 0 20px var(--green); color: white; }
+        .black-key { position: absolute; background: #111; width: 36px; height: 60%; left: 42px; z-index: 10; border: 1px solid #222; border-radius: 0 0 3px 3px; display: flex; align-items: flex-end; justify-content: center; padding-bottom: 10px; font-size: 9px; }
+        .black-key.active { background: #333; box-shadow: inset 0 0 15px var(--green); }
     </style>
 </head>
 <body>
 
-<div id="top-viz"><canvas id="canvas"></canvas></div>
-
-<div class="header-info">
-    <span>PROJETO: MEU_BEAT_V1</span>
-    <span id="active-name">TRILHA A</span>
-    <span onclick="location.reload()" style="color:#ff4444">LIMPAR TUDO</span>
+<div class="header">
+    <button class="btn-exit" onclick="location.reload()">SAIR</button>
+    <div class="mode-status">MODO LIVRE</div>
+    <div class="rec-indicator" id="rec-status"><div class="rec-dot"></div> REC</div>
 </div>
 
-<div id="studio"></div>
+<div class="controls-row">
+    <div class="slider-box">PITCH: <input type="range" id="pitch-slider" min="0.5" max="2.0" step="0.01" value="1.0"></div>
+    <div class="slider-box">VOL: <input type="range" id="vol-slider" min="0" max="1" step="0.1" value="0.8"></div>
+</div>
 
-<footer>
-    <button id="recBtn" class="btn btn-rec">🎤 GRAVAR NA TRILHA ATIVA</button>
-    <button class="btn btn-play" onclick="togglePlay()">▶ PLAY / STOP</button>
-    <button class="btn btn-save" onclick="exportAudio()">💾 BAIXAR RITMO</button>
-</footer>
+<div class="actions-row">
+    <button class="action-btn btn-eco" id="eco-btn" onclick="toggleEffect('eco')">ECO: OFF</button>
+    <button class="action-btn btn-usb" id="usb-btn">USB: OFF</button>
+    <button class="action-btn btn-mic" id="mic-btn" onclick="startVoiceRecording()">MIC: OFF</button>
+    <div class="instrument-select">🎸 SYNTH</div>
+</div>
+
+<div class="keyboard-container" id="piano"></div>
 
 <script>
     const audioCtx = new (window.AudioContext || window.webkitAudioContext)();
-    const analyser = audioCtx.createAnalyser();
     const masterGain = audioCtx.createGain();
-    const dest = audioCtx.createMediaStreamDestination();
+    const delay = audioCtx.createDelay();
+    const feedback = audioCtx.createGain();
 
-    analyser.fftSize = 512;
-    masterGain.connect(analyser);
-    analyser.connect(audioCtx.destination);
-    masterGain.connect(dest);
+    masterGain.connect(audioCtx.destination);
+    
+    // Config de Eco (igual ao print)
+    delay.delayTime.value = 0.3;
+    feedback.gain.value = 0.4;
+    delay.connect(feedback);
+    feedback.connect(delay);
 
-    let isPlaying = false;
-    let currentStep = 0;
-    let nextStepTime = 0;
-    let activeTrackIdx = 0;
+    let recordedBuffer = null;
+    let isEcoOn = false;
 
-    const trackColors = ['#00ff00', '#00d2ff', '#ff00ff', '#ffcc00'];
-    const trackClasses = ['track-a', 'track-b', 'track-c', 'track-d'];
+    function toggleEffect(type) {
+        if(type === 'eco') {
+            isEcoOn = !isEcoOn;
+            document.getElementById('eco-btn').innerText = `ECO: ${isEcoOn ? 'ON' : 'OFF'}`;
+        }
+    }
 
-    let tracks = JSON.parse(localStorage.getItem('gemini_final_data')) || [
-        { id: 'A', steps: new Array(16).fill(false), vol: 0.8, eco: 0 },
-        { id: 'B', steps: new Array(16).fill(false), vol: 0.8, eco: 0 },
-        { id: 'C', steps: new Array(16).fill(false), vol: 0.8, eco: 0 },
-        { id: 'D', steps: new Array(16).fill(false), vol: 0.8, eco: 0 }
+    const notes = [
+        {f: 261.63, n: 'Dó'}, {f: 277.18, n: 'Dó#', b:true},
+        {f: 293.66, n: 'Ré'}, {f: 311.13, n: 'Ré#', b:true},
+        {f: 329.63, n: 'Mi'}, 
+        {f: 349.23, n: 'Fá'}, {f: 369.99, n: 'Fá#', b:true},
+        {f: 392.00, n: 'Sol'}, {f: 415.30, n: 'Sol#', b:true},
+        {f: 440.00, n: 'Lá'}, {f: 466.16, n: 'Lá#', b:true},
+        {f: 493.88, n: 'Si'},
+        {f: 523.25, n: 'Dó2'}, {f: 554.37, n: 'Ré#2', b:true}
     ];
 
-    let audioBuffers = [null, null, null, null];
+    const piano = document.getElementById('piano');
+    notes.forEach((note, i) => {
+        if(note.b) return; // Pula pretas para tratar dentro das brancas
 
-    function render() {
-        const studio = document.getElementById('studio');
-        studio.innerHTML = '';
-        tracks.forEach((tr, i) => {
-            const card = document.createElement('div');
-            card.className = `track ${trackClasses[i]} ${activeTrackIdx === i ? 'active-edit' : ''}`;
-            card.onclick = () => { 
-                activeTrackIdx = i; 
-                document.getElementById('active-name').innerText = "EDITANDO: TRILHA " + tr.id;
-                render(); 
-            };
-            
-            card.innerHTML = `
-                <div class="controls">
-                    <b style="color:${trackColors[i]}">${tr.id}</b>
-                    <div class="slider-box">VOL <input type="range" min="0" max="1" step="0.1" value="${tr.vol}" oninput="tracks[${i}].vol=this.value; save()"></div>
-                    <div class="slider-box">ECO <input type="range" min="0" max="0.8" step="0.1" value="${tr.eco}" oninput="tracks[${i}].eco=this.value; save()"></div>
-                </div>
-                <div class="grid">
-                    ${tr.steps.map((s, si) => {
-                        const isCurrent = currentStep === si && isPlaying;
-                        const color = s ? trackColors[i] : '#333';
-                        const textColor = s ? '#000' : 'rgba(255,255,255,0.2)';
-                        return `<button class="step ${isCurrent ? 'playing' : ''}" 
-                                 style="background:${color}; color:${textColor}; box-shadow: ${s ? '0 0 10px '+trackColors[i] : 'none'}"
-                                 onclick="event.stopPropagation(); toggleStep(${i}, ${si})">${si + 1}</button>`;
-                    }).join('')}
-                </div>
-            `;
-            studio.appendChild(card);
-        });
-    }
-
-    function toggleStep(t, s) { tracks[t].steps[s] = !tracks[t].steps[s]; save(); render(); }
-    function save() { localStorage.setItem('gemini_final_data', JSON.stringify(tracks)); }
-
-    function playSound(buffer, trData, time) {
-        if (!buffer) return;
-        const src = audioCtx.createBufferSource();
-        const g = audioCtx.createGain();
-        const delay = audioCtx.createDelay();
-        const feedback = audioCtx.createGain();
-
-        src.buffer = buffer;
-        g.gain.value = trData.vol;
-        delay.delayTime.value = 0.25;
-        feedback.gain.value = trData.eco;
-
-        src.connect(g);
-        g.connect(masterGain);
-        g.connect(delay);
-        delay.connect(feedback);
-        feedback.connect(delay);
-        delay.connect(masterGain);
-        src.start(time);
-    }
-
-    function scheduler() {
-        while (nextStepTime < audioCtx.currentTime + 0.1) {
-            tracks.forEach((tr, i) => {
-                if (tr.steps[currentStep]) playSound(audioBuffers[i], tr, nextStepTime);
-            });
-            nextStepTime += (60.0 / 120.0 / 4);
-            currentStep = (currentStep + 1) % 16;
-            render();
+        const key = document.createElement('div');
+        key.className = 'key';
+        key.innerHTML = `<span>${note.n}</span>`;
+        
+        // Verifica se tem tecla preta à frente
+        if(notes[i+1] && notes[i+1].b) {
+            const bKey = document.createElement('div');
+            bKey.className = 'black-key';
+            bKey.innerHTML = `<span>${notes[i+1].n}</span>`;
+            bKey.onmousedown = () => play(notes[i+1].f, bKey);
+            key.appendChild(bKey);
         }
-        if (isPlaying) requestAnimationFrame(scheduler);
+
+        key.onmousedown = () => play(note.f, key);
+        piano.appendChild(key);
+    });
+
+    function play(freq, element) {
+        audioCtx.resume();
+        const pitch = document.getElementById('pitch-slider').value;
+        const volume = document.getElementById('vol-slider').value;
+        
+        element.classList.add('active');
+        setTimeout(() => element.classList.remove('active'), 300);
+
+        if(!recordedBuffer) {
+            const osc = audioCtx.createOscillator();
+            const g = audioCtx.createGain();
+            osc.frequency.value = freq * pitch;
+            g.gain.value = volume;
+            osc.connect(g);
+            g.connect(isEcoOn ? delay : masterGain);
+            if(isEcoOn) delay.connect(masterGain);
+            osc.start(); osc.stop(audioCtx.currentTime + 0.5);
+        } else {
+            const src = audioCtx.createBufferSource();
+            const g = audioCtx.createGain();
+            src.buffer = recordedBuffer;
+            src.playbackRate.value = (freq / 261.63) * pitch;
+            g.gain.value = volume;
+            src.connect(g);
+            g.connect(isEcoOn ? delay : masterGain);
+            if(isEcoOn) delay.connect(masterGain);
+            src.start();
+        }
     }
 
-    function togglePlay() {
-        isPlaying = !isPlaying;
-        if (isPlaying) { audioCtx.resume(); currentStep = 0; nextStepTime = audioCtx.currentTime; scheduler(); }
-    }
-
-    let recorder;
-    document.getElementById('recBtn').onclick = async () => {
-        if (recorder?.state === "recording") { recorder.stop(); return; }
+    async function startVoiceRecording() {
+        const btn = document.getElementById('mic-btn');
+        btn.innerText = "GRAVANDO...";
         const stream = await navigator.mediaDevices.getUserMedia({ audio: true });
-        recorder = new MediaRecorder(stream);
+        const rec = new MediaRecorder(stream);
         let chunks = [];
-        recorder.ondataavailable = e => chunks.push(e.data);
-        recorder.onstop = async () => {
-            const blob = new Blob(chunks, { type: 'audio/ogg' });
-            const arrayBuffer = await blob.arrayBuffer();
-            audioCtx.decodeAudioData(arrayBuffer, b => {
-                audioBuffers[activeTrackIdx] = b;
-                alert("Som salvo na Trilha " + tracks[activeTrackIdx].id);
-                render();
+        rec.ondataavailable = e => chunks.push(e.data);
+        rec.onstop = async () => {
+            const b = new Blob(chunks);
+            audioCtx.decodeAudioData(await b.arrayBuffer(), buf => {
+                recordedBuffer = buf;
+                btn.innerText = "MIC: VOICE ON";
+                btn.style.background = "#32CD32";
             });
-            document.getElementById('recBtn').innerText = "🎤 GRAVAR NA TRILHA ATIVA";
         };
-        recorder.start();
-        document.getElementById('recBtn').innerText = "⏹ PARAR (GRAVANDO...)";
-    };
-
-    function exportAudio() {
-        alert("Gravando os próximos 8 segundos...");
-        const mr = new MediaRecorder(dest.stream);
-        const chunks = [];
-        mr.ondataavailable = e => chunks.push(e.data);
-        mr.onstop = () => {
-            const blob = new Blob(chunks, { type: 'audio/webm' });
-            const url = URL.createObjectURL(blob);
-            const a = document.createElement('a');
-            a.href = url; a.download = 'meu_hit.webm'; a.click();
-        };
-        mr.start();
-        setTimeout(() => mr.stop(), 8000);
+        rec.start();
+        setTimeout(() => rec.stop(), 2000); // Grava 2 segundos
     }
-
-    const canvas = document.getElementById('canvas');
-    const ctx = canvas.getContext('2d');
-    function draw() {
-        requestAnimationFrame(draw);
-        const data = new Uint8Array(analyser.frequencyBinCount);
-        analyser.getByteTimeDomainData(data);
-        ctx.fillStyle = '#000'; ctx.fillRect(0,0,canvas.width, canvas.height);
-        ctx.strokeStyle = trackColors[activeTrackIdx]; ctx.lineWidth = 3; ctx.beginPath();
-        let x = 0;
-        for(let i=0; i<data.length; i++) {
-            let v = data[i]/128.0; let y = v * canvas.height/2;
-            if(i===0) ctx.moveTo(x,y); else ctx.lineTo(x,y);
-            x += canvas.width/data.length;
-        }
-        ctx.stroke();
-    }
-
-    canvas.width = window.innerWidth;
-    render(); draw();
 </script>
 </body>
-</html>
-
+    </html>
+    
