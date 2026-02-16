@@ -3,173 +3,175 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-    <title>Gemini Step Sequencer</title>
+    <title>Gemini Studio: Color Edition</title>
     <style>
-        :root { --neon: #00ff00; --bg: #0d0d0d; --panel: #1a1a1a; --dark: #000; }
+        :root { --bg: #121212; --panel: #1e1e1e; --text: #ffffff; }
         * { box-sizing: border-box; touch-action: manipulation; }
-        body { background: var(--bg); color: white; font-family: sans-serif; margin: 0; overflow: hidden; display: flex; flex-direction: column; height: 100vh; }
+        body { background: var(--bg); color: var(--text); font-family: 'Segoe UI', Roboto, sans-serif; margin: 0; overflow: hidden; height: 100vh; display: flex; flex-direction: column; }
 
-        /* Topo com Osciloscópio */
-        #top-bar { height: 80px; background: var(--dark); border-bottom: 2px solid var(--neon); position: relative; }
+        /* Osciloscópio */
+        #top-viz { height: 70px; background: #000; border-bottom: 2px solid #333; }
         canvas { width: 100%; height: 100%; }
 
-        /* Configurações (Tempo/Passos) */
-        #config-bar { background: var(--panel); padding: 10px; display: flex; gap: 20px; font-size: 12px; border-bottom: 1px solid #333; justify-content: center; }
-        input[type="number"] { background: #000; border: 1px solid var(--neon); color: var(--neon); width: 50px; text-align: center; }
+        /* Status */
+        .header-info { background: #000; padding: 5px 15px; display: flex; justify-content: space-between; font-size: 11px; color: #888; border-bottom: 1px solid #222; }
 
         /* Sequenciador */
-        #sequencer { flex: 1; overflow-y: auto; padding: 10px; display: flex; flex-direction: column; gap: 10px; }
-        .track { display: flex; align-items: center; gap: 10px; background: #111; padding: 5px; border-radius: 5px; }
-        .track-info { width: 80px; font-size: 10px; font-weight: bold; color: var(--neon); }
-        .steps-container { display: flex; gap: 4px; flex: 1; overflow-x: auto; padding: 5px; }
-        .step { 
-            width: 40px; height: 50px; background: #333; border-radius: 4px; border: 1px solid #444;
-            display: flex; align-items: center; justify-content: center; font-size: 10px; cursor: pointer;
-        }
-        .step.active { background: var(--neon); color: black; box-shadow: 0 0 10px var(--neon); }
-        .step.playing { border: 2px solid white; }
-
-        /* Painel Inferior */
-        #controls { background: var(--dark); padding: 15px; border-top: 2px solid #333; display: flex; flex-direction: column; gap: 10px; }
-        .btn-group { display: flex; gap: 10px; }
-        .btn { flex: 1; padding: 12px; border: none; border-radius: 5px; font-weight: bold; cursor: pointer; text-transform: uppercase; font-size: 12px; }
-        .btn-play { background: var(--neon); color: black; }
-        .btn-rec { background: #ff4444; color: white; }
+        #studio { flex: 1; overflow-y: auto; padding: 10px; display: flex; flex-direction: column; gap: 12px; }
+        .track { background: var(--panel); border-radius: 12px; padding: 12px; border-left: 6px solid #444; transition: 0.2s; }
         
-        #keyboard { display: flex; height: 60px; gap: 2px; overflow-x: auto; }
-        .key { min-width: 40px; background: white; border-radius: 0 0 4px 4px; color: black; font-size: 9px; display: flex; align-items: flex-end; justify-content: center; padding-bottom: 5px; }
+        /* Cores das Trilhas (Baseado na sua imagem) */
+        .track-a { border-left-color: #00ff00; } /* Verde */
+        .track-b { border-left-color: #00d2ff; } /* Azul */
+        .track-c { border-left-color: #ff00ff; } /* Rosa */
+        .track-d { border-left-color: #ffcc00; } /* Amarelo */
+
+        .active-edit { background: #252525; box-shadow: inset 0 0 10px rgba(255,255,255,0.05); }
+
+        .controls { display: grid; grid-template-columns: 40px 1fr 1fr; gap: 10px; align-items: center; margin-bottom: 10px; }
+        .slider-box { display: flex; flex-direction: column; font-size: 9px; color: #aaa; }
+        input[type="range"] { accent-color: white; height: 4px; }
+
+        .grid { display: grid; grid-template-columns: repeat(8, 1fr); gap: 6px; }
+        .step { 
+            height: 40px; background: #333; border-radius: 8px; border: none;
+            color: rgba(255,255,255,0.2); font-size: 10px; font-weight: bold;
+        }
+
+        /* Cores Ativas dinâmicas via JS */
+        .step.playing { border: 2px solid white; transform: scale(1.05); }
+
+        /* Footer */
+        footer { background: #000; padding: 12px; display: grid; grid-template-columns: 1fr 1fr; gap: 10px; border-top: 1px solid #333; }
+        .btn { padding: 14px; border: none; border-radius: 10px; font-weight: bold; text-transform: uppercase; font-size: 11px; cursor: pointer; }
+        .btn-play { background: #00ff00; color: #000; }
+        .btn-save { background: #00d2ff; color: #000; }
+        .btn-rec { background: #ff4444; color: #fff; grid-column: span 2; font-size: 13px; }
     </style>
 </head>
 <body>
 
-<div id="top-bar">
-    <canvas id="osc"></canvas>
+<div id="top-viz"><canvas id="canvas"></canvas></div>
+
+<div class="header-info">
+    <span>PROJETO: MEU_BEAT_V1</span>
+    <span id="active-name">TRILHA A</span>
+    <span onclick="location.reload()" style="color:#ff4444">LIMPAR TUDO</span>
 </div>
 
-<div id="config-bar">
-    <div>TEMPO: <input type="number" id="bpm" value="120"> BPM</div>
-    <div>PASSOS: <span id="step-count">16</span></div>
-</div>
+<div id="studio"></div>
 
-<div id="sequencer">
-    </div>
-
-<div id="controls">
-    <div class="btn-group">
-        <button class="btn btn-play" onclick="togglePlay()">▶ PLAY / STOP</button>
-        <button id="recBtn" class="btn btn-rec">🎤 GRAVAR PARA TRILHA</button>
-    </div>
-    <div id="keyboard"></div>
-</div>
+<footer>
+    <button id="recBtn" class="btn btn-rec">🎤 GRAVAR NA TRILHA ATIVA</button>
+    <button class="btn btn-play" onclick="togglePlay()">▶ PLAY / STOP</button>
+    <button class="btn btn-save" onclick="exportAudio()">💾 BAIXAR RITMO</button>
+</footer>
 
 <script>
     const audioCtx = new (window.AudioContext || window.webkitAudioContext)();
     const analyser = audioCtx.createAnalyser();
-    analyser.fftSize = 2048;
-    
-    let tracks = [
-        { name: 'TRILHA A', buffer: null, steps: new Array(16).fill(false) },
-        { name: 'TRILHA B', buffer: null, steps: new Array(16).fill(false) },
-        { name: 'TRILHA C', buffer: null, steps: new Array(16).fill(false) },
-        { name: 'TRILHA D', buffer: null, steps: new Array(16).fill(false) }
-    ];
+    const masterGain = audioCtx.createGain();
+    const dest = audioCtx.createMediaStreamDestination();
+
+    analyser.fftSize = 512;
+    masterGain.connect(analyser);
+    analyser.connect(audioCtx.destination);
+    masterGain.connect(dest);
 
     let isPlaying = false;
     let currentStep = 0;
     let nextStepTime = 0;
-    let selectedTrackIndex = 0;
+    let activeTrackIdx = 0;
 
-    // --- INICIALIZAR INTERFACE ---
-    const sequencerEl = document.getElementById('sequencer');
-    function renderSequencer() {
-        sequencerEl.innerHTML = '';
-        tracks.forEach((track, tIdx) => {
-            const trEl = document.createElement('div');
-            trEl.className = `track ${selectedTrackIndex === tIdx ? 'selected' : ''}`;
-            trEl.onclick = () => { selectedTrackIndex = tIdx; renderSequencer(); };
+    const trackColors = ['#00ff00', '#00d2ff', '#ff00ff', '#ffcc00'];
+    const trackClasses = ['track-a', 'track-b', 'track-c', 'track-d'];
 
-            const info = document.createElement('div');
-            info.className = 'track-info';
-            info.innerText = track.name + (track.buffer ? ' ✅' : ' ⏳');
+    let tracks = JSON.parse(localStorage.getItem('gemini_final_data')) || [
+        { id: 'A', steps: new Array(16).fill(false), vol: 0.8, eco: 0 },
+        { id: 'B', steps: new Array(16).fill(false), vol: 0.8, eco: 0 },
+        { id: 'C', steps: new Array(16).fill(false), vol: 0.8, eco: 0 },
+        { id: 'D', steps: new Array(16).fill(false), vol: 0.8, eco: 0 }
+    ];
 
-            const stepsContainer = document.createElement('div');
-            stepsContainer.className = 'steps-container';
+    let audioBuffers = [null, null, null, null];
 
-            track.steps.forEach((stepActive, sIdx) => {
-                const sEl = document.createElement('div');
-                sEl.className = `step ${stepActive ? 'active' : ''}`;
-                sEl.innerText = sIdx + 1;
-                sEl.onclick = (e) => {
-                    e.stopPropagation();
-                    track.steps[sIdx] = !track.steps[sIdx];
-                    renderSequencer();
-                    uiSound();
-                };
-                stepsContainer.appendChild(sEl);
-            });
-
-            trEl.appendChild(info);
-            trEl.appendChild(stepsContainer);
-            sequencerEl.appendChild(trEl);
+    function render() {
+        const studio = document.getElementById('studio');
+        studio.innerHTML = '';
+        tracks.forEach((tr, i) => {
+            const card = document.createElement('div');
+            card.className = `track ${trackClasses[i]} ${activeTrackIdx === i ? 'active-edit' : ''}`;
+            card.onclick = () => { 
+                activeTrackIdx = i; 
+                document.getElementById('active-name').innerText = "EDITANDO: TRILHA " + tr.id;
+                render(); 
+            };
+            
+            card.innerHTML = `
+                <div class="controls">
+                    <b style="color:${trackColors[i]}">${tr.id}</b>
+                    <div class="slider-box">VOL <input type="range" min="0" max="1" step="0.1" value="${tr.vol}" oninput="tracks[${i}].vol=this.value; save()"></div>
+                    <div class="slider-box">ECO <input type="range" min="0" max="0.8" step="0.1" value="${tr.eco}" oninput="tracks[${i}].eco=this.value; save()"></div>
+                </div>
+                <div class="grid">
+                    ${tr.steps.map((s, si) => {
+                        const isCurrent = currentStep === si && isPlaying;
+                        const color = s ? trackColors[i] : '#333';
+                        const textColor = s ? '#000' : 'rgba(255,255,255,0.2)';
+                        return `<button class="step ${isCurrent ? 'playing' : ''}" 
+                                 style="background:${color}; color:${textColor}; box-shadow: ${s ? '0 0 10px '+trackColors[i] : 'none'}"
+                                 onclick="event.stopPropagation(); toggleStep(${i}, ${si})">${si + 1}</button>`;
+                    }).join('')}
+                </div>
+            `;
+            studio.appendChild(card);
         });
     }
 
-    // --- LÓGICA DE ÁUDIO ---
-    function playSound(buffer, time) {
+    function toggleStep(t, s) { tracks[t].steps[s] = !tracks[t].steps[s]; save(); render(); }
+    function save() { localStorage.setItem('gemini_final_data', JSON.stringify(tracks)); }
+
+    function playSound(buffer, trData, time) {
         if (!buffer) return;
-        const source = audioCtx.createBufferSource();
-        source.buffer = buffer;
-        source.connect(analyser);
-        analyser.connect(audioCtx.destination);
-        source.start(time);
+        const src = audioCtx.createBufferSource();
+        const g = audioCtx.createGain();
+        const delay = audioCtx.createDelay();
+        const feedback = audioCtx.createGain();
+
+        src.buffer = buffer;
+        g.gain.value = trData.vol;
+        delay.delayTime.value = 0.25;
+        feedback.gain.value = trData.eco;
+
+        src.connect(g);
+        g.connect(masterGain);
+        g.connect(delay);
+        delay.connect(feedback);
+        feedback.connect(delay);
+        delay.connect(masterGain);
+        src.start(time);
     }
 
     function scheduler() {
         while (nextStepTime < audioCtx.currentTime + 0.1) {
-            tracks.forEach(track => {
-                if (track.steps[currentStep]) {
-                    playSound(track.buffer, nextStepTime);
-                }
+            tracks.forEach((tr, i) => {
+                if (tr.steps[currentStep]) playSound(audioBuffers[i], tr, nextStepTime);
             });
-            advanceStep();
+            nextStepTime += (60.0 / 120.0 / 4);
+            currentStep = (currentStep + 1) % 16;
+            render();
         }
         if (isPlaying) requestAnimationFrame(scheduler);
     }
 
-    function advanceStep() {
-        const bpm = document.getElementById('bpm').value;
-        const secondsPerStep = 60.0 / bpm / 4; // 16 avos
-        nextStepTime += secondsPerStep;
-        
-        currentStep++;
-        if (currentStep >= 16) currentStep = 0;
-        
-        // Visual highlight
-        document.querySelectorAll('.step').forEach(el => el.classList.remove('playing'));
-        const allTracks = document.querySelectorAll('.track');
-        allTracks.forEach(tr => {
-            const steps = tr.querySelectorAll('.step');
-            if(steps[currentStep]) steps[currentStep].classList.add('playing');
-        });
-    }
-
     function togglePlay() {
         isPlaying = !isPlaying;
-        if (isPlaying) {
-            audioCtx.resume();
-            currentStep = 0;
-            nextStepTime = audioCtx.currentTime;
-            scheduler();
-        }
+        if (isPlaying) { audioCtx.resume(); currentStep = 0; nextStepTime = audioCtx.currentTime; scheduler(); }
     }
 
-    // --- GRAVAÇÃO ---
     let recorder;
     document.getElementById('recBtn').onclick = async () => {
-        if (recorder?.state === "recording") {
-            recorder.stop();
-            return;
-        }
+        if (recorder?.state === "recording") { recorder.stop(); return; }
         const stream = await navigator.mediaDevices.getUserMedia({ audio: true });
         recorder = new MediaRecorder(stream);
         let chunks = [];
@@ -178,59 +180,51 @@
             const blob = new Blob(chunks, { type: 'audio/ogg' });
             const arrayBuffer = await blob.arrayBuffer();
             audioCtx.decodeAudioData(arrayBuffer, b => {
-                tracks[selectedTrackIndex].buffer = b;
-                renderSequencer();
+                audioBuffers[activeTrackIdx] = b;
+                alert("Som salvo na Trilha " + tracks[activeTrackIdx].id);
+                render();
             });
-            document.getElementById('recBtn').innerText = "🎤 GRAVAR PARA " + tracks[selectedTrackIndex].name;
+            document.getElementById('recBtn').innerText = "🎤 GRAVAR NA TRILHA ATIVA";
         };
         recorder.start();
-        document.getElementById('recBtn').innerText = "⏹ PARANDO...";
+        document.getElementById('recBtn').innerText = "⏹ PARAR (GRAVANDO...)";
     };
 
-    // --- VISUALIZADOR ---
-    const canvas = document.getElementById('osc');
+    function exportAudio() {
+        alert("Gravando os próximos 8 segundos...");
+        const mr = new MediaRecorder(dest.stream);
+        const chunks = [];
+        mr.ondataavailable = e => chunks.push(e.data);
+        mr.onstop = () => {
+            const blob = new Blob(chunks, { type: 'audio/webm' });
+            const url = URL.createObjectURL(blob);
+            const a = document.createElement('a');
+            a.href = url; a.download = 'meu_hit.webm'; a.click();
+        };
+        mr.start();
+        setTimeout(() => mr.stop(), 8000);
+    }
+
+    const canvas = document.getElementById('canvas');
     const ctx = canvas.getContext('2d');
     function draw() {
         requestAnimationFrame(draw);
         const data = new Uint8Array(analyser.frequencyBinCount);
         analyser.getByteTimeDomainData(data);
-        ctx.fillStyle = '#000';
-        ctx.fillRect(0,0,canvas.width, canvas.height);
-        ctx.strokeStyle = '#00ff00';
-        ctx.beginPath();
+        ctx.fillStyle = '#000'; ctx.fillRect(0,0,canvas.width, canvas.height);
+        ctx.strokeStyle = trackColors[activeTrackIdx]; ctx.lineWidth = 3; ctx.beginPath();
         let x = 0;
         for(let i=0; i<data.length; i++) {
-            let v = data[i]/128.0;
-            let y = v * canvas.height/2;
+            let v = data[i]/128.0; let y = v * canvas.height/2;
             if(i===0) ctx.moveTo(x,y); else ctx.lineTo(x,y);
             x += canvas.width/data.length;
         }
         ctx.stroke();
     }
 
-    function uiSound() {
-        const o = audioCtx.createOscillator();
-        const g = audioCtx.createGain();
-        o.frequency.value = 1000;
-        g.gain.exponentialRampToValueAtTime(0.0001, audioCtx.currentTime + 0.1);
-        o.connect(g); g.connect(audioCtx.destination);
-        o.start(); o.stop(audioCtx.currentTime + 0.1);
-    }
-
-    // --- SETUP INICIAL ---
     canvas.width = window.innerWidth;
-    renderSequencer();
-    draw();
-
-    // Teclado rápido para teste
-    const kb = document.getElementById('keyboard');
-    for(let i=0; i<12; i++) {
-        const k = document.createElement('div');
-        k.className = 'key';
-        k.innerText = 'T'+i;
-        k.onclick = () => playSound(tracks[selectedTrackIndex].buffer, audioCtx.currentTime);
-        kb.appendChild(k);
-    }
+    render(); draw();
 </script>
 </body>
 </html>
+
