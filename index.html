@@ -17,9 +17,10 @@
         input[type="range"] { flex: 1; accent-color: var(--green); height: 10px; background: #333; border-radius: 5px; appearance: none; }
 
         .buttons { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; padding: 8px; }
-        .btn-act { height: 48px; border: none; border-radius: 25px; color: white; font-weight: bold; font-size: 12px; text-transform: uppercase; }
+        .btn-act { height: 48px; border: none; border-radius: 25px; color: white; font-weight: bold; font-size: 12px; text-transform: uppercase; cursor: pointer; }
         .btn-mic { background: var(--pink); }
         .btn-mic.recording { background: #fff; color: red; animation: blink 0.8s infinite; }
+        .btn-eco.active { background: #fff; color: var(--blue); box-shadow: 0 0 15px var(--blue); }
 
         @keyframes blink { 50% { opacity: 0.4; } }
 
@@ -47,17 +48,17 @@
 
 <div class="header">
     <button class="btn-sair" onclick="location.reload()">SAIR</button>
-    <div style="color: var(--green); font-weight: bold; font-size: 12px;">PADRÃO REAL • SUSTAIN LISO</div>
+    <div style="color: var(--green); font-weight: bold; font-size: 12px;">Padrão 2 e 3 • Crossfade Pro</div>
     <div style="color: #00BFFF; font-size: 10px;">● MASTER OUT</div>
 </div>
 
 <div class="sliders">
-    <div class="slider-item">PITCH: <input type="range" id="pitch" min="0.5" max="2.0" step="0.01" value="1.0"></div>
+    <div class="slider-item">TOM: <input type="range" id="pitch" min="-12" max="12" step="1" value="0"></div>
     <div class="slider-item">VOL: <input type="range" id="vol" min="0" max="5" step="0.1" value="2.5"></div>
 </div>
 
 <div class="buttons">
-    <button class="btn-act" style="background:var(--blue)">ECO: OFF</button>
+    <button class="btn-act btn-eco" id="ecoBtn" style="background:var(--blue)" onclick="toggleEco()">ECO: OFF</button>
     <button class="btn-act btn-mic" id="micBtn" onclick="toggleMic()">🎤 GRAVAR ÁUDIO</button>
 </div>
 
@@ -68,102 +69,126 @@
 <script>
     const audioCtx = new (window.AudioContext || window.webkitAudioContext)();
     const masterGain = audioCtx.createGain();
+    const echoNode = audioCtx.createDelay(1.0);
+    const echoGain = audioCtx.createGain();
+    
+    // Configura o Eco
+    echoNode.delayTime.value = 0.3;
+    echoGain.gain.value = 0; // Desligado por padrão
+    echoNode.connect(echoGain);
+    echoGain.connect(echoNode); // Feedback loop
+    
     masterGain.connect(audioCtx.destination);
+    echoGain.connect(masterGain);
 
     let recordedBuffer = null;
     let isRecording = false;
+    let ecoActive = false;
     let mediaRecorder = null;
     let activeNodes = {};
 
-    // Padrão Real de Piano (7 brancas, 5 pretas por oitava)
+    // Padrão Real (2 e 3 teclas pretas)
     const notes = [
-        {f: 130.81, n: 'Dó'}, {f: 138.59, n: 'Dó#', b:true},
-        {f: 146.83, n: 'Ré'}, {f: 155.56, n: 'Ré#', b:true},
-        {f: 164.81, n: 'Mi'}, 
-        {f: 174.61, n: 'Fá'}, {f: 185.00, n: 'Fá#', b:true},
-        {f: 196.00, n: 'Sol'}, {f: 207.65, n: 'Sol#', b:true},
-        {f: 220.00, n: 'Lá'}, {f: 233.08, n: 'Lá#', b:true},
-        {f: 246.94, n: 'Si'},
+        {r: 1, n: 'Dó'}, {r: 1.059, n: 'Dó#', b:true},
+        {r: 1.122, n: 'Ré'}, {r: 1.189, n: 'Ré#', b:true},
+        {r: 1.259, n: 'Mi'}, 
+        {r: 1.334, n: 'Fá'}, {r: 1.414, n: 'Fá#', b:true},
+        {r: 1.498, n: 'Sol'}, {r: 1.587, n: 'Sol#', b:true},
+        {r: 1.681, n: 'Lá'}, {r: 1.781, n: 'Lá#', b:true},
+        {r: 1.887, n: 'Si'},
         // Oitava 2
-        {f: 261.63, n: 'Dó'}, {f: 277.18, n: 'Dó#', b:true},
-        {f: 293.66, n: 'Ré'}, {f: 311.13, n: 'Ré#', b:true},
-        {f: 329.63, n: 'Mi'}, 
-        {f: 349.23, n: 'Fá'}, {f: 369.99, n: 'Fá#', b:true},
-        {f: 392.00, n: 'Sol'}, {f: 415.30, n: 'Sol#', b:true},
-        {f: 440.00, n: 'Lá'}, {f: 466.16, n: 'Lá#', b:true},
-        {f: 493.88, n: 'Si'}
+        {r: 2, n: 'Dó'}, {r: 2.118, n: 'Dó#', b:true},
+        {r: 2.244, n: 'Ré'}, {r: 2.378, n: 'Ré#', b:true},
+        {r: 2.518, n: 'Mi'}, 
+        {r: 2.668, n: 'Fá'}, {r: 2.828, n: 'Fá#', b:true},
+        {r: 2.996, n: 'Sol'}, {r: 3.174, n: 'Sol#', b:true},
+        {r: 3.362, n: 'Lá'}, {r: 3.562, n: 'Lá#', b:true},
+        {r: 3.774, n: 'Si'}
     ];
 
     const piano = document.getElementById('piano');
     let whiteKeys = [];
 
-    notes.forEach((nota) => {
-        if (!nota.b) {
-            const key = document.createElement('div');
-            key.className = 'key';
-            key.innerHTML = `<span>${nota.n}</span>`;
-            key.addEventListener('touchstart', (e) => { e.preventDefault(); start(nota.f, key); });
-            key.addEventListener('touchend', () => stop(nota.f, key));
-            piano.appendChild(key);
-            whiteKeys.push(key);
-        }
+    // Desenha brancas
+    notes.filter(n => !n.b).forEach(n => {
+        const key = document.createElement('div');
+        key.className = 'key';
+        key.innerHTML = `<span>${n.n}</span>`;
+        key.ontouchstart = (e) => { e.preventDefault(); start(n.r, key); };
+        key.ontouchend = () => stop(n.r, key);
+        piano.appendChild(key);
+        whiteKeys.push(key);
     });
 
+    // Posiciona pretas no padrão 2-3 correto
     let wIdx = 0;
-    notes.forEach((nota) => {
-        if (nota.b) {
+    notes.forEach((n) => {
+        if(n.b) {
             const bKey = document.createElement('div');
             bKey.className = 'black-key';
             const ref = whiteKeys[wIdx];
             bKey.style.left = (ref.offsetLeft + ref.offsetWidth) + "px";
-            bKey.addEventListener('touchstart', (e) => { e.preventDefault(); e.stopPropagation(); start(nota.f, bKey); });
-            bKey.addEventListener('touchend', () => stop(nota.f, bKey));
+            bKey.ontouchstart = (e) => { e.preventDefault(); e.stopPropagation(); start(n.r, bKey); };
+            bKey.ontouchend = () => stop(n.r, bKey);
             piano.appendChild(bKey);
             wIdx++;
         } else {
-            // Só pula para a próxima referência de preta se não for Mi ou Si
-            if (nota.n !== 'Mi' && nota.n !== 'Si') wIdx++;
+            if(n.n !== 'Mi' && n.n !== 'Si') wIdx; else wIdx++;
         }
     });
 
-    function start(freq, el) {
+    function start(ratio, el) {
         if (audioCtx.state === 'suspended') audioCtx.resume();
         el.classList.add('active');
-        const pitchVal = document.getElementById('pitch').value;
-        const volVal = document.getElementById('vol').value;
+        const pitchShift = Math.pow(2, document.getElementById('pitch').value / 12);
+        const vol = document.getElementById('vol').value;
 
         const g = audioCtx.createGain();
         g.gain.setValueAtTime(0, audioCtx.currentTime);
-        g.gain.linearRampToValueAtTime(volVal, audioCtx.currentTime + 0.03);
+        g.gain.linearRampToValueAtTime(vol, audioCtx.currentTime + 0.05);
 
         let src;
         if(!recordedBuffer) {
             src = audioCtx.createOscillator();
             src.type = 'sawtooth';
-            src.frequency.value = freq * pitchVal;
+            src.frequency.value = 261.63 * ratio * pitchShift;
         } else {
             src = audioCtx.createBufferSource();
             src.buffer = recordedBuffer;
-            src.playbackRate.value = (freq / 261.63) * pitchVal;
+            src.playbackRate.value = ratio * pitchShift;
             src.loop = true;
-            const dur = recordedBuffer.duration;
-            src.loopStart = dur * 0.7; 
-            src.loopEnd = dur;
+            // Crossfade liso para não travar
+            src.loopStart = recordedBuffer.duration * 0.4;
+            src.loopEnd = recordedBuffer.duration;
         }
 
-        src.connect(g);
-        g.connect(masterGain);
+        src.connect(g).connect(masterGain);
+        src.connect(echoNode); // Envia para o Eco
         src.start();
-        activeNodes[freq] = { src, g, startTime: audioCtx.currentTime };
+        activeNodes[ratio] = { src, g };
     }
 
-    function stop(freq, el) {
+    function stop(ratio, el) {
         el.classList.remove('active');
-        const node = activeNodes[freq];
+        const node = activeNodes[ratio];
         if (node) {
             node.g.gain.setTargetAtTime(0, audioCtx.currentTime, 0.05);
-            node.src.stop(audioCtx.currentTime + 0.2);
-            delete activeNodes[freq];
+            node.src.stop(audioCtx.currentTime + 0.5);
+            delete activeNodes[ratio];
+        }
+    }
+
+    function toggleEco() {
+        ecoActive = !ecoActive;
+        const btn = document.getElementById('ecoBtn');
+        if(ecoActive) {
+            echoGain.gain.setTargetAtTime(0.4, audioCtx.currentTime, 0.1);
+            btn.innerText = "ECO: ON";
+            btn.classList.add('active');
+        } else {
+            echoGain.gain.setTargetAtTime(0, audioCtx.currentTime, 0.1);
+            btn.innerText = "ECO: OFF";
+            btn.classList.remove('active');
         }
     }
 
@@ -178,8 +203,8 @@
                 const b = await (new Blob(ch)).arrayBuffer();
                 audioCtx.decodeAudioData(b, buf => { 
                     recordedBuffer = buf; 
-                    btn.innerText = "PRONTO!";
-                    btn.style.background = "#32CD32";
+                    btn.innerText = "PRONTO!"; 
+                    btn.style.background = "#32CD32"; 
                 });
             };
             mediaRecorder.start();
@@ -193,5 +218,5 @@
     }
 </script>
 </body>
-    </html>
+        </html>
     
