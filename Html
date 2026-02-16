@@ -1,79 +1,63 @@
 <!DOCTYPE html>
-<html lang="pt-pt">
+<html lang="pt-br">
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-    <title>Gemini Studio: Ultimate Edition</title>
+    <title>Gemini Step Sequencer</title>
     <style>
-        :root { --neon: #00ff00; --bg: #050505; --panel: #111; --blue: #00f2ff; }
+        :root { --neon: #00ff00; --bg: #0d0d0d; --panel: #1a1a1a; --dark: #000; }
         * { box-sizing: border-box; touch-action: manipulation; }
-        body { background: var(--bg); color: white; font-family: 'Orbitron', sans-serif; margin: 0; height: 100vh; display: flex; flex-direction: column; overflow: hidden; }
+        body { background: var(--bg); color: white; font-family: sans-serif; margin: 0; overflow: hidden; display: flex; flex-direction: column; height: 100vh; }
 
-        /* Visualizador de Ondas */
-        #visualizer-container { height: 120px; background: #000; border-bottom: 2px solid var(--neon); position: relative; overflow: hidden; }
+        /* Topo com Osciloscópio */
+        #top-bar { height: 80px; background: var(--dark); border-bottom: 2px solid var(--neon); position: relative; }
         canvas { width: 100%; height: 100%; }
 
-        header { background: #000; padding: 10px; display: flex; justify-content: space-between; align-items: center; }
-        
-        .main-content { display: flex; flex: 1; overflow: hidden; }
-        #mixer { width: 60px; background: #111; display: flex; flex-direction: column; align-items: center; padding: 10px 0; border-right: 1px solid #222; }
-        .fader { appearance: slider-vertical; width: 20px; height: 150px; accent-color: var(--neon); }
+        /* Configurações (Tempo/Passos) */
+        #config-bar { background: var(--panel); padding: 10px; display: flex; gap: 20px; font-size: 12px; border-bottom: 1px solid #333; justify-content: center; }
+        input[type="number"] { background: #000; border: 1px solid var(--neon); color: var(--neon); width: 50px; text-align: center; }
 
-        /* Timeline */
-        #timeline { flex: 1; overflow-y: auto; padding: 10px; background: repeating-linear-gradient(90deg, transparent, transparent 49px, #222 50px); }
-        .track { height: 60px; background: rgba(0,255,0,0.02); margin-bottom: 10px; border-radius: 4px; position: relative; border: 1px solid #1a1a1a; }
-        
-        .block { 
-            position: absolute; height: 40px; top: 10px; background: var(--neon); color: #000;
-            border-radius: 4px; font-weight: bold; font-size: 10px; display: flex; align-items: center; 
-            justify-content: center; cursor: pointer; box-shadow: 0 0 10px var(--neon);
+        /* Sequenciador */
+        #sequencer { flex: 1; overflow-y: auto; padding: 10px; display: flex; flex-direction: column; gap: 10px; }
+        .track { display: flex; align-items: center; gap: 10px; background: #111; padding: 5px; border-radius: 5px; }
+        .track-info { width: 80px; font-size: 10px; font-weight: bold; color: var(--neon); }
+        .steps-container { display: flex; gap: 4px; flex: 1; overflow-x: auto; padding: 5px; }
+        .step { 
+            width: 40px; height: 50px; background: #333; border-radius: 4px; border: 1px solid #444;
+            display: flex; align-items: center; justify-content: center; font-size: 10px; cursor: pointer;
         }
-        .block.selected { border: 2px solid white; box-shadow: 0 0 20px #fff; z-index: 10; }
+        .step.active { background: var(--neon); color: black; box-shadow: 0 0 10px var(--neon); }
+        .step.playing { border: 2px solid white; }
 
-        /* Painel de Controlo */
-        .bottom-area { background: var(--panel); padding: 10px; border-top: 2px solid #222; }
-        .btn-row { display: flex; gap: 5px; margin-bottom: 10px; }
+        /* Painel Inferior */
+        #controls { background: var(--dark); padding: 15px; border-top: 2px solid #333; display: flex; flex-direction: column; gap: 10px; }
+        .btn-group { display: flex; gap: 10px; }
+        .btn { flex: 1; padding: 12px; border: none; border-radius: 5px; font-weight: bold; cursor: pointer; text-transform: uppercase; font-size: 12px; }
+        .btn-play { background: var(--neon); color: black; }
+        .btn-rec { background: #ff4444; color: white; }
         
-        #keyboard { display: flex; height: 80px; gap: 2px; overflow-x: auto; }
-        .key { min-width: 45px; flex: 1; border-radius: 0 0 5px 5px; display: flex; align-items: flex-end; justify-content: center; padding-bottom: 5px; background: white; color: black; font-weight: bold; font-size: 10px; }
-        .black { background: #333; color: white; height: 60%; min-width: 30px; margin: 0 -15px; z-index: 2; }
-        .key.active { background: var(--neon) !important; box-shadow: 0 0 20px var(--neon); transform: scaleY(0.95); }
-
-        .btn { border: none; border-radius: 5px; padding: 10px; font-weight: bold; cursor: pointer; flex: 1; text-transform: uppercase; font-size: 10px; }
-        .btn-rec { background: #ff0044; color: white; animation: pulse 2s infinite; }
-        @keyframes pulse { 0% { opacity: 1; } 50% { opacity: 0.7; } 100% { opacity: 1; } }
+        #keyboard { display: flex; height: 60px; gap: 2px; overflow-x: auto; }
+        .key { min-width: 40px; background: white; border-radius: 0 0 4px 4px; color: black; font-size: 9px; display: flex; align-items: flex-end; justify-content: center; padding-bottom: 5px; }
     </style>
 </head>
 <body>
 
-<div id="visualizer-container">
-    <canvas id="canvas"></canvas>
-    <div style="position:absolute; top:5px; left:10px; color:var(--neon); font-size:10px;">OSCILLOSCOPE_V1</div>
+<div id="top-bar">
+    <canvas id="osc"></canvas>
 </div>
 
-<header>
-    <div style="color:var(--neon); font-weight:bold;">GEMINI_ULTRA_STUDIO</div>
-    <button class="btn" style="background:var(--neon); color:black; max-width:100px;" onclick="playAll()">▶ MASTER_PLAY</button>
-</header>
-
-<div class="main-content">
-    <div id="mixer">
-        <label style="font-size:8px;">GAIN</label>
-        <input type="range" class="fader" min="0" max="1" step="0.1" value="0.8">
-    </div>
-
-    <div id="timeline">
-        <div class="track" id="tr1"></div>
-        <div class="track" id="tr2"></div>
-        <div class="track" id="tr3"></div>
-    </div>
+<div id="config-bar">
+    <div>TEMPO: <input type="number" id="bpm" value="120"> BPM</div>
+    <div>PASSOS: <span id="step-count">16</span></div>
 </div>
 
-<div class="bottom-area">
-    <div class="btn-row">
-        <button id="recBtn" class="btn btn-rec">🎤 RECORD_SAMPLE</button>
-        <button class="btn" style="background:var(--blue); color:black;" onclick="duplicate()">👯 CLONE</button>
-        <button class="btn" style="background:#444; color:white;" onclick="removeBlock()">🗑️ ERASE</button>
+<div id="sequencer">
+    </div>
+
+<div id="controls">
+    <div class="btn-group">
+        <button class="btn btn-play" onclick="togglePlay()">▶ PLAY / STOP</button>
+        <button id="recBtn" class="btn btn-rec">🎤 GRAVAR PARA TRILHA</button>
     </div>
     <div id="keyboard"></div>
 </div>
@@ -82,140 +66,171 @@
     const audioCtx = new (window.AudioContext || window.webkitAudioContext)();
     const analyser = audioCtx.createAnalyser();
     analyser.fftSize = 2048;
-    const bufferLength = analyser.frequencyBinCount;
-    const dataArray = new Uint8Array(bufferLength);
+    
+    let tracks = [
+        { name: 'TRILHA A', buffer: null, steps: new Array(16).fill(false) },
+        { name: 'TRILHA B', buffer: null, steps: new Array(16).fill(false) },
+        { name: 'TRILHA C', buffer: null, steps: new Array(16).fill(false) },
+        { name: 'TRILHA D', buffer: null, steps: new Array(16).fill(false) }
+    ];
 
-    let songData = [];
-    let selectedId = null;
+    let isPlaying = false;
+    let currentStep = 0;
+    let nextStepTime = 0;
+    let selectedTrackIndex = 0;
 
-    // --- OSCILOSCÓPIO (DESENHO) ---
-    const canvas = document.getElementById('canvas');
-    const canvasCtx = canvas.getContext('2d');
+    // --- INICIALIZAR INTERFACE ---
+    const sequencerEl = document.getElementById('sequencer');
+    function renderSequencer() {
+        sequencerEl.innerHTML = '';
+        tracks.forEach((track, tIdx) => {
+            const trEl = document.createElement('div');
+            trEl.className = `track ${selectedTrackIndex === tIdx ? 'selected' : ''}`;
+            trEl.onclick = () => { selectedTrackIndex = tIdx; renderSequencer(); };
 
-    function draw() {
-        requestAnimationFrame(draw);
-        analyser.getByteTimeDomainData(dataArray);
-        canvasCtx.fillStyle = '#000';
-        canvasCtx.fillRect(0, 0, canvas.width, canvas.height);
-        canvasCtx.lineWidth = 2;
-        canvasCtx.strokeStyle = '#00ff00';
-        canvasCtx.beginPath();
-        let sliceWidth = canvas.width * 1.0 / bufferLength;
-        let x = 0;
-        for (let i = 0; i < bufferLength; i++) {
-            let v = dataArray[i] / 128.0;
-            let y = v * canvas.height / 2;
-            if (i === 0) canvasCtx.moveTo(x, y);
-            else canvasCtx.lineTo(x, y);
-            x += sliceWidth;
-        }
-        canvasCtx.lineTo(canvas.width, canvas.height / 2);
-        canvasCtx.stroke();
+            const info = document.createElement('div');
+            info.className = 'track-info';
+            info.innerText = track.name + (track.buffer ? ' ✅' : ' ⏳');
+
+            const stepsContainer = document.createElement('div');
+            stepsContainer.className = 'steps-container';
+
+            track.steps.forEach((stepActive, sIdx) => {
+                const sEl = document.createElement('div');
+                sEl.className = `step ${stepActive ? 'active' : ''}`;
+                sEl.innerText = sIdx + 1;
+                sEl.onclick = (e) => {
+                    e.stopPropagation();
+                    track.steps[sIdx] = !track.steps[sIdx];
+                    renderSequencer();
+                    uiSound();
+                };
+                stepsContainer.appendChild(sEl);
+            });
+
+            trEl.appendChild(info);
+            trEl.appendChild(stepsContainer);
+            sequencerEl.appendChild(trEl);
+        });
     }
-    draw();
 
-    // --- TECLADO INTERATIVO ---
-    const notes = ['C','C#','D','D#','E','F','F#','G','G#','A','A#','B','C2'];
-    const kb = document.getElementById('keyboard');
-    notes.forEach((n, i) => {
-        const k = document.createElement('div');
-        k.className = `key ${n.includes('#') ? 'black' : 'white'}`;
-        k.innerHTML = n;
-        const speed = Math.pow(2, i/12);
+    // --- LÓGICA DE ÁUDIO ---
+    function playSound(buffer, time) {
+        if (!buffer) return;
+        const source = audioCtx.createBufferSource();
+        source.buffer = buffer;
+        source.connect(analyser);
+        analyser.connect(audioCtx.destination);
+        source.start(time);
+    }
+
+    function scheduler() {
+        while (nextStepTime < audioCtx.currentTime + 0.1) {
+            tracks.forEach(track => {
+                if (track.steps[currentStep]) {
+                    playSound(track.buffer, nextStepTime);
+                }
+            });
+            advanceStep();
+        }
+        if (isPlaying) requestAnimationFrame(scheduler);
+    }
+
+    function advanceStep() {
+        const bpm = document.getElementById('bpm').value;
+        const secondsPerStep = 60.0 / bpm / 4; // 16 avos
+        nextStepTime += secondsPerStep;
         
-        const play = (e) => {
-            e.preventDefault(); k.classList.add('active');
+        currentStep++;
+        if (currentStep >= 16) currentStep = 0;
+        
+        // Visual highlight
+        document.querySelectorAll('.step').forEach(el => el.classList.remove('playing'));
+        const allTracks = document.querySelectorAll('.track');
+        allTracks.forEach(tr => {
+            const steps = tr.querySelectorAll('.step');
+            if(steps[currentStep]) steps[currentStep].classList.add('playing');
+        });
+    }
+
+    function togglePlay() {
+        isPlaying = !isPlaying;
+        if (isPlaying) {
             audioCtx.resume();
-            let sel = songData.find(s => s.id === selectedId);
-            const src = audioCtx.createBufferSource();
-            if(sel) {
-                src.buffer = sel.buffer;
-                src.playbackRate.value = speed;
-            } else {
-                // Som de teste senoidal se nada estiver selecionado
-                const osc = audioCtx.createOscillator();
-                osc.frequency.value = 261.63 * speed;
-                osc.connect(analyser); analyser.connect(audioCtx.destination);
-                osc.start(); osc.stop(audioCtx.currentTime + 0.2);
-                return;
-            }
-            src.connect(analyser); analyser.connect(audioCtx.destination);
-            src.start(0);
-        };
-        k.onmousedown = k.ontouchstart = play;
-        k.onmouseup = k.ontouchend = () => k.classList.remove('active');
-        kb.appendChild(k);
-    });
+            currentStep = 0;
+            nextStepTime = audioCtx.currentTime;
+            scheduler();
+        }
+    }
 
     // --- GRAVAÇÃO ---
     let recorder;
     document.getElementById('recBtn').onclick = async () => {
-        if(recorder?.state === "recording") {
+        if (recorder?.state === "recording") {
             recorder.stop();
-            document.getElementById('recBtn').innerText = "🎤 RECORD_SAMPLE";
             return;
         }
         const stream = await navigator.mediaDevices.getUserMedia({ audio: true });
-        const source = audioCtx.createMediaStreamSource(stream);
-        source.connect(analyser); // Mostra a voz no osciloscópio enquanto grava!
-
         recorder = new MediaRecorder(stream);
         let chunks = [];
         recorder.ondataavailable = e => chunks.push(e.data);
         recorder.onstop = async () => {
-            const blob = new Blob(chunks, {type: 'audio/ogg'});
+            const blob = new Blob(chunks, { type: 'audio/ogg' });
             const arrayBuffer = await blob.arrayBuffer();
-            audioCtx.decodeAudioData(arrayBuffer, b => createBlock(b));
+            audioCtx.decodeAudioData(arrayBuffer, b => {
+                tracks[selectedTrackIndex].buffer = b;
+                renderSequencer();
+            });
+            document.getElementById('recBtn').innerText = "🎤 GRAVAR PARA " + tracks[selectedTrackIndex].name;
         };
         recorder.start();
-        document.getElementById('recBtn').innerText = "⏹ STOP_REC";
+        document.getElementById('recBtn').innerText = "⏹ PARANDO...";
     };
 
-    function createBlock(buffer) {
-        const id = "blk-" + Date.now();
-        const el = document.createElement('div');
-        el.className = 'block'; el.id = id; el.innerText = "SAMPLE";
-        el.style.left = "10px";
-        el.style.width = Math.max(40, buffer.duration * 50) + "px";
-
-        const data = { id, buffer, x: 10 };
-        songData.push(data);
-        el.onclick = () => select(id);
-        document.getElementById('tr1').appendChild(el);
-        select(id);
-    }
-
-    function select(id) {
-        selectedId = id;
-        document.querySelectorAll('.block').forEach(b => b.classList.toggle('selected', b.id === id));
-    }
-
-    function duplicate() {
-        let sel = songData.find(s => s.id === selectedId);
-        if(sel) createBlock(sel.buffer);
-    }
-
-    function removeBlock() {
-        if(selectedId) {
-            document.getElementById(selectedId).remove();
-            songData = songData.filter(s => s.id !== selectedId);
-            selectedId = null;
+    // --- VISUALIZADOR ---
+    const canvas = document.getElementById('osc');
+    const ctx = canvas.getContext('2d');
+    function draw() {
+        requestAnimationFrame(draw);
+        const data = new Uint8Array(analyser.frequencyBinCount);
+        analyser.getByteTimeDomainData(data);
+        ctx.fillStyle = '#000';
+        ctx.fillRect(0,0,canvas.width, canvas.height);
+        ctx.strokeStyle = '#00ff00';
+        ctx.beginPath();
+        let x = 0;
+        for(let i=0; i<data.length; i++) {
+            let v = data[i]/128.0;
+            let y = v * canvas.height/2;
+            if(i===0) ctx.moveTo(x,y); else ctx.lineTo(x,y);
+            x += canvas.width/data.length;
         }
+        ctx.stroke();
     }
 
-    function playAll() {
-        audioCtx.resume();
-        songData.forEach(s => {
-            const src = audioCtx.createBufferSource();
-            src.buffer = s.buffer;
-            src.connect(analyser);
-            analyser.connect(audioCtx.destination);
-            src.start(audioCtx.currentTime);
-        });
+    function uiSound() {
+        const o = audioCtx.createOscillator();
+        const g = audioCtx.createGain();
+        o.frequency.value = 1000;
+        g.gain.exponentialRampToValueAtTime(0.0001, audioCtx.currentTime + 0.1);
+        o.connect(g); g.connect(audioCtx.destination);
+        o.start(); o.stop(audioCtx.currentTime + 0.1);
     }
 
-    // Ajuste de ecrã para o Canvas
+    // --- SETUP INICIAL ---
     canvas.width = window.innerWidth;
+    renderSequencer();
+    draw();
+
+    // Teclado rápido para teste
+    const kb = document.getElementById('keyboard');
+    for(let i=0; i<12; i++) {
+        const k = document.createElement('div');
+        k.className = 'key';
+        k.innerText = 'T'+i;
+        k.onclick = () => playSound(tracks[selectedTrackIndex].buffer, audioCtx.currentTime);
+        kb.appendChild(k);
+    }
 </script>
 </body>
 </html>
