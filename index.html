@@ -1,176 +1,281 @@
 <!DOCTYPE html>
-<html lang="pt-br">
+<html lang="pt-BR">
 <head>
     <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, orientation=landscape">
-    <title>Studio Virtual - BRSC</title>
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Piano AR Pro v7 - Final</title>
+    <script src="https://cdn.jsdelivr.net/npm/@mediapipe/camera_utils/camera_utils.js" crossorigin="anonymous"></script>
+    <script src="https://cdn.jsdelivr.net/npm/@mediapipe/hands/hands.js" crossorigin="anonymous"></script>
     <style>
-        :root { --bg: #000; --green: #32CD32; --blue: #1E90FF; --pink: #FF1493; --orange: #FF8C00; }
-        * { box-sizing: border-box; -webkit-tap-highlight-color: transparent; }
-        body { background: var(--bg); color: white; font-family: sans-serif; margin: 0; overflow: hidden; height: 100vh; user-select: none; }
-        .header { display: flex; align-items: center; justify-content: space-between; padding: 5px 15px; height: 45px; }
-        .btn-sair { background: var(--orange); border: none; color: white; padding: 5px 20px; border-radius: 20px; font-weight: bold; font-size: 11px; }
-        .sliders { display: flex; gap: 15px; padding: 0 15px; }
-        .slider-item { flex: 1; display: flex; align-items: center; gap: 8px; font-size: 10px; font-weight: bold; }
-        input[type="range"] { flex: 1; accent-color: var(--green); height: 10px; background: #333; border-radius: 5px; appearance: none; }
-        .buttons { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; padding: 8px; }
-        .btn-act { height: 48px; border: none; border-radius: 25px; color: white; font-weight: bold; font-size: 12px; text-transform: uppercase; }
-        .btn-mic { background: var(--pink); }
-        .btn-mic.recording { background: #fff; color: red; animation: blink 0.8s infinite; }
-        .keyboard-wrapper { width: 100%; overflow-x: auto; height: calc(100vh - 190px); background: #111; position: relative; }
-        .keyboard { display: flex; min-width: 1500px; height: 100%; position: relative; padding: 0 10px; }
-        .key { flex: 1; min-width: 95px; background: linear-gradient(to bottom, #eee 0%, #fff 100%); border: 1px solid #888; border-radius: 0 0 10px 10px; position: relative; display: flex; align-items: flex-end; justify-content: center; padding-bottom: 20px; color: #333; font-size: 13px; font-weight: bold; z-index: 1; }
-        .key.active { background: #ddd; box-shadow: inset 0 0 30px var(--green); }
-        .black-key { position: absolute; background: linear-gradient(to bottom, #444 0%, #000 100%); width: 55px; height: 60%; z-index: 2; border-radius: 0 0 6px 6px; border: 2px solid #222; box-shadow: 3px 5px 10px rgba(0,0,0,0.6); margin-left: -27.5px; display: flex; align-items: flex-end; justify-content: center; padding-bottom: 10px; color: white; font-size: 10px; }
-        .black-key.active { background: #222; box-shadow: inset 0 0 20px var(--green); }
-        @keyframes blink { 50% { opacity: 0.4; } }
+        body { font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif; background-color: #121212; color: white; margin: 0; overflow: hidden; display: flex; flex-direction: column; align-items: center; }
+        
+        /* --- UI: Menu e Tutorial --- */
+        #sideMenu { height: 100%; width: 0; position: fixed; z-index: 20; top: 0; left: 0; background-color: #111; overflow-x: hidden; transition: 0.5s; padding-top: 60px; box-shadow: 2px 0 15px black; }
+        #sideMenu a { padding: 10px 32px; text-decoration: none; font-size: 18px; color: #818181; display: block; cursor: pointer; transition: 0.3s; }
+        #sideMenu a:hover { color: #4CAF50; background: #222; }
+        
+        #tutorialOverlay { position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: rgba(0,0,0,0.92); z-index: 100; display: flex; justify-content: center; align-items: center; }
+        .tutorial-box { background: #1e1e1e; padding: 40px; border-radius: 20px; border: 2px solid #4CAF50; max-width: 500px; text-align: center; box-shadow: 0 0 30px rgba(76, 175, 80, 0.3); }
+
+        /* --- UI: Principal --- */
+        .header { width: 100%; padding: 15px; display: flex; justify-content: space-between; align-items: center; background: #1a1a1a; border-bottom: 2px solid #333; }
+        canvas { border: 3px solid #4CAF50; border-radius: 12px; margin-top: 10px; max-width: 95vw; box-shadow: 0 10px 30px rgba(0,0,0,0.5); }
+        
+        .controls { margin-top: 15px; display: flex; gap: 12px; flex-wrap: wrap; justify-content: center; align-items: center; padding-bottom: 20px; }
+        .slider-container { background: #252525; padding: 12px 20px; border-radius: 10px; display: flex; align-items: center; gap: 15px; border: 1px solid #444; }
+        
+        button { padding: 12px 24px; font-weight: bold; cursor: pointer; border: none; border-radius: 8px; background-color: #4CAF50; color: white; transition: scale 0.2s; }
+        button:hover { scale: 1.05; background-color: #45a049; }
+        #btnAdjust { background-color: #2196F3; }
+        #btnAdjust.active { background-color: #ff9800; animation: pulse 1.5s infinite; }
+        #btnStopRecord { background-color: #f44336; display: none; }
+        video { display: none; }
+
+        @keyframes pulse { 0% { opacity: 1; } 50% { opacity: 0.6; } 100% { opacity: 1; } }
     </style>
 </head>
 <body>
 
-<div class="header">
-    <button class="btn-sair" onclick="location.reload()">SAIR</button>
-    <div style="color: var(--green); font-weight: bold; font-size: 12px;">CONSTANT SPEED • NO-GAP LOOP</div>
-    <div style="color: #00BFFF; font-size: 10px;">● MASTER OUT</div>
-</div>
+    <div id="tutorialOverlay">
+        <div class="tutorial-box" id="tutorialContent"></div>
+    </div>
 
-<div class="sliders">
-    <div class="slider-item">TOM: <input type="range" id="pitch" min="-12" max="12" step="1" value="0"></div>
-    <div class="slider-item">VOL: <input type="range" id="vol" min="0" max="5" step="0.1" value="2.5"></div>
-</div>
+    <div id="sideMenu">
+        <a href="javascript:void(0)" onclick="toggleMenu(0)" style="font-size:30px; position: absolute; right: 20px; top: 10px;">&times;</a>
+        <p style="color: #4CAF50; padding: 0 32px; font-weight: bold; margin-top: 20px;">CONFIGURAÇÕES</p>
+        <a onclick="startTutorial()">📖 Ver Tutorial</a>
+        <a onclick="location.reload()">🔄 Reiniciar Calibração</a>
+    </div>
 
-<div class="buttons">
-    <button class="btn-act" style="background:var(--blue)">ECO: OFF</button>
-    <button class="btn-act btn-mic" id="micBtn" onclick="toggleMic()">🎤 GRAVAR ÁUDIO</button>
-</div>
+    <div class="header">
+        <button onclick="toggleMenu(250)">☰ Menu</button>
+        <h3 id="noteDisplay" style="margin: 0; color: #4CAF50;">Piano: Sol a Fá</h3>
+        <div style="width: 80px;"></div>
+    </div>
 
-<div class="keyboard-wrapper">
-    <div class="keyboard" id="piano"></div>
-</div>
+    <canvas id="canvasElement" width="1000" height="550"></canvas>
 
-<script>
-    const audioCtx = new (window.AudioContext || window.webkitAudioContext)();
-    const masterGain = audioCtx.createGain();
-    masterGain.connect(audioCtx.destination);
-
-    let recordedBuffer = null;
-    let isRecording = false;
-    let mediaRecorder = null;
-    let activeNodes = {};
-
-    // Padrão Real 2 e 3
-    const notes = [
-        {r: 1, n: 'Dó'}, {r: 1.059, n: 'Dó#', b:true},
-        {r: 1.122, n: 'Ré'}, {r: 1.189, n: 'Ré#', b:true},
-        {r: 1.259, n: 'Mi'}, 
-        {r: 1.334, n: 'Fá'}, {r: 1.414, n: 'Fá#', b:true},
-        {r: 1.498, n: 'Sol'}, {r: 1.587, n: 'Sol#', b:true},
-        {r: 1.681, n: 'Lá'}, {r: 1.781, n: 'Lá#', b:true},
-        {r: 1.887, n: 'Si'},
-        {r: 2, n: 'Dó'}, {r: 2.118, n: 'Dó#', b:true},
-        {r: 2.244, n: 'Ré'}, {r: 2.378, n: 'Ré#', b:true},
-        {r: 2.518, n: 'Mi'},
-        {r: 2.668, n: 'Fá'}, {r: 2.828, n: 'Fá#', b:true},
-        {r: 2.996, n: 'Sol'}, {r: 3.174, n: 'Sol#', b:true},
-        {r: 3.362, n: 'Lá'}, {r: 3.562, n: 'Lá#', b:true},
-        {r: 3.774, n: 'Si'}
-    ];
-
-    const piano = document.getElementById('piano');
-    let whiteKeys = [];
-
-    notes.filter(n => !n.b).forEach(n => {
-        const div = document.createElement('div');
-        div.className = 'key'; div.innerHTML = `<span>${n.n}</span>`;
-        div.ontouchstart = (e) => { e.preventDefault(); start(n.r, div); };
-        div.ontouchend = () => stop(n.r, div);
-        piano.appendChild(div); whiteKeys.push(div);
-    });
-
-    let wIdx = 0;
-    notes.forEach((n) => {
-        if(n.b) {
-            const bKey = document.createElement('div');
-            bKey.className = 'black-key'; bKey.innerHTML = n.n;
-            const ref = whiteKeys[wIdx];
-            bKey.style.left = (ref.offsetLeft + ref.offsetWidth) + "px";
-            bKey.ontouchstart = (e) => { e.preventDefault(); e.stopPropagation(); start(n.r, bKey); };
-            bKey.ontouchend = () => stop(n.r, bKey);
-            piano.appendChild(bKey); wIdx++;
-        } else { if(n.n !== 'Mi' && n.n !== 'Si') wIdx; else wIdx++; }
-    });
-
-    function start(ratio, el) {
-        if (audioCtx.state === 'suspended') audioCtx.resume();
-        el.classList.add('active');
+    <div class="controls">
+        <button id="btnStart">🎹 Ligar Sistema</button>
         
-        const pitchVal = parseInt(document.getElementById('pitch').value);
-        const vol = document.getElementById('vol').value;
-        const g = audioCtx.createGain();
-        g.gain.setValueAtTime(0, audioCtx.currentTime);
-        g.gain.linearRampToValueAtTime(vol, audioCtx.currentTime + 0.05);
+        <div class="slider-container">
+            <span>Mover Oitavas:</span>
+            <input type="range" id="noteSlider" min="0" max="15" value="7">
+        </div>
 
-        if(!recordedBuffer) {
+        <button id="btnAdjust">🎯 Ajustar Posição</button>
+        <button id="btnPhoto" disabled>📸 Foto</button>
+        <button id="btnRecord" disabled>🎥 Gravar</button>
+        <button id="btnStopRecord">⏹️ Parar</button>
+    </div>
+
+    <video id="videoElement" autoplay playsinline></video>
+
+    <script>
+        const canvas = document.getElementById('canvasElement');
+        const ctx = canvas.getContext('2d');
+        const video = document.getElementById('videoElement');
+        const noteSlider = document.getElementById('noteSlider');
+        const noteDisplay = document.getElementById('noteDisplay');
+
+        // --- GERAÇÃO DE 3 OITAVAS (C2 A C5) ---
+        const allWhiteNotes = [];
+        const noteNames = ["Dó", "Ré", "Mi", "Fá", "Sol", "Lá", "Si"];
+        const baseFreqs = [130.81, 146.83, 164.81, 174.61, 196.00, 220.00, 246.94];
+        
+        for(let oct=0; oct<3; oct++) {
+            noteNames.forEach((name, i) => {
+                allWhiteNotes.push({ name: name, freq: baseFreqs[i] * Math.pow(2, oct) });
+            });
+        }
+        allWhiteNotes.push({ name: "Dó", freq: 1046.50 });
+
+        // --- ESTADO ---
+        let pianoPos = { x: 100, y: 280 };
+        let isAdjusting = false;
+        let isDragging = false;
+        let currentOffset = 7; 
+        const GAP = 8; // Espaço para desenhar
+        const BLACK_PATTERN = [true, true, false, true, true, true, false]; // Padrão de sustenidos
+
+        // --- TUTORIAL ---
+        let step = 0;
+        const tutorial = [
+            { t: "Bem-vindo ao Piano Pro!", c: "Desenhe 7 teclas brancas grandes num papel para começar." },
+            { t: "Seletor de Notas", c: "Use o controle deslizante abaixo para escolher quais notas quer tocar hoje." },
+            { t: "Ajuste e Arraste", c: "Clique em 'Ajustar Posição' e arraste as teclas virtuais para cima do seu desenho." },
+            { t: "Regra dos 40%", c: "O som só sai quando o dedo passa da linha amarela. Toque no meio das pretas para precisão!" }
+        ];
+        function updateTutorial() {
+            const s = tutorial[step];
+            document.getElementById('tutorialContent').innerHTML = `
+                <h2 style="color:#4CAF50">${s.t}</h2>
+                <p style="font-size:18px; line-height:1.6">${s.c}</p>
+                <div style="margin-top:30px">
+                    <button class="btn-nav" onclick="closeTutorial()" style="background:#555">Pular</button>
+                    ${step < tutorial.length - 1 ? `<button onclick="nextStep()" style="margin-left:10px">Próximo</button>` : `<button onclick="closeTutorial()" style="margin-left:10px">Começar!</button>`}
+                </div>`;
+        }
+        function nextStep() { step++; updateTutorial(); }
+        function closeTutorial() { document.getElementById('tutorialOverlay').style.display = 'none'; }
+        function startTutorial() { step = 0; document.getElementById('tutorialOverlay').style.display = 'flex'; toggleMenu(0); updateTutorial(); }
+        updateTutorial();
+
+        // --- LÓGICA DE MOVIMENTO ---
+        noteSlider.oninput = () => {
+            currentOffset = parseInt(noteSlider.value);
+            noteDisplay.innerText = `Piano: ${allWhiteNotes[currentOffset].name} a ${allWhiteNotes[currentOffset+6].name}`;
+        };
+        canvas.onmousedown = () => { if(isAdjusting) isDragging = true; };
+        window.onmouseup = () => isDragging = false;
+        canvas.onmousemove = (e) => {
+            if(isDragging && isAdjusting) {
+                const rect = canvas.getBoundingClientRect();
+                pianoPos.x += e.movementX * (canvas.width / rect.width);
+                pianoPos.y += e.movementY * (canvas.height / rect.height);
+            }
+        };
+        document.getElementById('btnAdjust').onclick = () => {
+            isAdjusting = !isAdjusting;
+            document.getElementById('btnAdjust').classList.toggle('active');
+        };
+
+        // --- ÁUDIO (SUSTAIN + FADE) ---
+        let audioCtx, activeNotes = {}, currentId = null;
+
+        function playNote(id, freq) {
+            if (!audioCtx || activeNotes[id]) return;
             const osc = audioCtx.createOscillator();
-            osc.type = 'sawtooth';
-            osc.frequency.value = 261.63 * ratio * Math.pow(2, pitchVal/12);
-            osc.connect(g).connect(masterGain);
-            osc.start();
-            activeNodes[ratio] = { src: osc, g };
-        } else {
-            const src = audioCtx.createBufferSource();
-            src.buffer = recordedBuffer;
-            
-            // VELOCIDADE TRAVADA: A velocidade de reprodução é sempre 1.0 (original)
-            src.playbackRate.value = 1.0; 
-            
-            // PITCH INDEPENDENTE: Usamos o detune para mudar a nota sem correr com o áudio
-            const semitones = (Math.log2(ratio) * 12) + pitchVal;
-            src.detune.value = semitones * 100;
-            
-            src.loop = true;
-            // LOOP SEM GAP: Ajuste milimétrico para sobrepor o início ao fim
-            src.loopStart = 0.1; 
-            src.loopEnd = recordedBuffer.duration - 0.1;
-
-            src.connect(g).connect(masterGain);
-            src.start();
-            activeNodes[ratio] = { src, g };
+            const g = audioCtx.createGain();
+            osc.type = 'triangle'; // Som mais encorpado
+            osc.frequency.setValueAtTime(freq, audioCtx.currentTime);
+            g.gain.setValueAtTime(0, audioCtx.currentTime);
+            g.gain.linearRampToValueAtTime(0.5, audioCtx.currentTime + 0.05);
+            osc.connect(g); g.connect(audioCtx.destination);
+            osc.start(); activeNotes[id] = { osc, g };
         }
-    }
 
-    function stop(ratio, el) {
-        el.classList.remove('active');
-        const node = activeNodes[ratio];
-        if (node) {
-            node.g.gain.setTargetAtTime(0, audioCtx.currentTime, 0.05);
-            node.src.stop(audioCtx.currentTime + 0.5);
-            delete activeNodes[ratio];
+        function stopNote(id) {
+            if (!activeNotes[id]) return;
+            const { osc, g } = activeNotes[id];
+            g.gain.exponentialRampToValueAtTime(0.001, audioCtx.currentTime + 0.4);
+            osc.stop(audioCtx.currentTime + 0.4);
+            delete activeNotes[id];
         }
-    }
 
-    async function toggleMic() {
-        const btn = document.getElementById('micBtn');
-        if (!isRecording) {
-            const s = await navigator.mediaDevices.getUserMedia({ audio: true });
-            mediaRecorder = new MediaRecorder(s);
-            let ch = [];
-            mediaRecorder.ondataavailable = e => ch.push(e.data);
-            mediaRecorder.onstop = async () => {
-                const b = await (new Blob(ch)).arrayBuffer();
-                audioCtx.decodeAudioData(b, buf => { 
-                    recordedBuffer = buf; 
-                    btn.innerText = "PRONTO!"; 
-                    btn.style.background = "#32CD32"; 
-                });
+        // --- IA E DETECÇÃO ---
+        const hands = new Hands({locateFile: (f) => `https://cdn.jsdelivr.net/npm/@mediapipe/hands/${f}`});
+        hands.setOptions({ maxNumHands: 1, minDetectionConfidence: 0.8 });
+
+        hands.onResults((res) => {
+            ctx.save();
+            ctx.clearRect(0, 0, canvas.width, canvas.height);
+            ctx.translate(canvas.width, 0); ctx.scale(-1, 1);
+            ctx.drawImage(res.image, 0, 0, canvas.width, canvas.height);
+
+            const kw_full = 110; 
+            const kw = kw_full - GAP;
+            const kh = 230;
+            let tid = null, tfreq = 0;
+
+            if (res.multiHandLandmarks && res.multiHandLandmarks.length > 0) {
+                const tip = res.multiHandLandmarks[0][8];
+                const fx = (1 - tip.x) * canvas.width;
+                const fy = tip.y * canvas.height;
+
+                // 1. PRIORIDADE: TECLAS PRETAS (EVITA BUG DAS LATERAIS)
+                for(let i=0; i<6; i++) {
+                    const patternIdx = (currentOffset + i) % 7;
+                    if(BLACK_PATTERN[patternIdx]) {
+                        const bx = pianoPos.x + (i * kw_full) + (kw_full * 0.65);
+                        const bw = kw_full * 0.7; // Área de toque da preta
+                        const bh = kh * 0.6;
+                        if(fx > bx && fx < bx + bw && fy > pianoPos.y + (bh * 0.4) && fy < pianoPos.y + bh) {
+                            tfreq = allWhiteNotes[currentOffset + i].freq * 1.05946; // Freq sustenido
+                            tid = "b"+i;
+                            break; // Se detectou preta, ignora o resto
+                        }
+                    }
+                }
+
+                // 2. TECLAS BRANCAS (SÓ SE NÃO TOCOU PRETA)
+                if(!tid) {
+                    for(let i=0; i<7; i++) {
+                        const wx = pianoPos.x + (i * kw_full);
+                        if(fx > wx && fx < wx + kw && fy > pianoPos.y + (kh * 0.4) && fy < pianoPos.y + kh) {
+                            tfreq = allWhiteNotes[currentOffset + i].freq;
+                            tid = "w"+i;
+                            break;
+                        }
+                    }
+                }
+                drawLandmarks(ctx, res.multiHandLandmarks[0], {color: '#00FF00', lineWidth: 1});
+            }
+
+            if(tid !== currentId) {
+                if(currentId) stopNote(currentId);
+                if(tid) playNote(tid, tfreq);
+                currentId = tid;
+            }
+            ctx.restore();
+
+            // --- DESENHO DAS TECLAS ---
+            if(isAdjusting) { 
+                ctx.strokeStyle="#2196F3"; ctx.lineWidth=4; ctx.setLineDash([10, 5]);
+                ctx.strokeRect(pianoPos.x-10, pianoPos.y-10, (7*kw_full)+10, kh+20);
+                ctx.setLineDash([]);
+            }
+
+            // Brancas
+            for(let i=0; i<7; i++) {
+                const x = pianoPos.x + (i * kw_full);
+                ctx.fillStyle = (currentId === "w"+i) ? "rgba(76, 175, 80, 0.5)" : "rgba(255,255,255,0.2)";
+                ctx.fillRect(x, pianoPos.y, kw, kh);
+                ctx.strokeStyle = "white"; ctx.strokeRect(x, pianoPos.y, kw, kh);
+                // Linha dos 40% (Guia visual)
+                ctx.fillStyle = "rgba(255, 255, 0, 0.8)";
+                ctx.fillRect(x, pianoPos.y + (kh * 0.4), kw, 3);
+            }
+            // Pretas
+            for(let i=0; i<6; i++) {
+                if(BLACK_PATTERN[(currentOffset + i) % 7]) {
+                    const bx = pianoPos.x + (i * kw_full) + (kw_full * 0.65);
+                    ctx.fillStyle = (currentId === "b"+i) ? "#00FF00" : "#000";
+                    ctx.fillRect(bx, pianoPos.y, kw_full * 0.7, kh * 0.6);
+                    ctx.strokeStyle = "white"; ctx.strokeRect(bx, pianoPos.y, kw_full * 0.7, kh * 0.6);
+                }
+            }
+        });
+
+        // --- CONTROLES GERAIS ---
+        function toggleMenu(w) { document.getElementById("sideMenu").style.width = w + "px"; }
+        document.getElementById('btnStart').onclick = () => {
+            audioCtx = new (window.AudioContext || window.webkitAudioContext)();
+            new Camera(video, { onFrame: async () => { await hands.send({image: video}); }, width: 1000, height: 550 }).start();
+            document.getElementById('btnStart').style.display = 'none';
+            document.getElementById('btnPhoto').disabled = document.getElementById('btnRecord').disabled = false;
+        };
+
+        document.getElementById('btnPhoto').onclick = () => {
+            const a = document.createElement('a'); a.download = 'meu_piano.png';
+            a.href = canvas.toDataURL(); a.click();
+        };
+
+        let chunks = [], rec;
+        document.getElementById('btnRecord').onclick = () => {
+            rec = new MediaRecorder(canvas.captureStream());
+            rec.ondataavailable = e => chunks.push(e.data);
+            rec.onstop = () => {
+                const b = new Blob(chunks, {type: 'video/webm'});
+                const a = document.createElement('a'); a.href = URL.createObjectURL(b); a.download = 'piano_show.webm'; a.click();
+                chunks = [];
             };
-            mediaRecorder.start();
-            isRecording = true;
-            btn.className = "btn-act btn-mic recording";
-            btn.innerText = "GRAVANDO...";
-        } else { mediaRecorder.stop(); isRecording = false; }
-    }
-</script>
+            rec.start();
+            document.getElementById('btnRecord').style.display = 'none';
+            document.getElementById('btnStopRecord').style.display = 'block';
+        };
+        document.getElementById('btnStopRecord').onclick = () => { rec.stop(); document.getElementById('btnRecord').style.display = 'block'; document.getElementById('btnStopRecord').style.display = 'none'; };
+    </script>
 </body>
     </html>
     
