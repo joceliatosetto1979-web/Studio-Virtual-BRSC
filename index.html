@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1, user-scalable=no">
-    <title>Piano Virtual BR - Full</title>
+    <title>Piano Virtual BR - Som Fix</title>
     <style>
         * { box-sizing: border-box; -webkit-tap-highlight-color: transparent; margin: 0; padding: 0; }
         body, html { width: 100vw; height: 100vh; overflow: hidden; background: #000; font-family: sans-serif; display: flex; flex-direction: column; }
@@ -13,12 +13,12 @@
 
         #m-p { background: radial-gradient(circle, #1a1a1a 0%, #000 100%); }
 
-        #painel { height: 38%; width: 100%; background: #111; display: flex; flex-direction: column; justify-content: space-around; padding: 10px; border-bottom: 2px solid #00ff0033; position: relative; }
+        #painel { height: 40%; width: 100%; background: #111; display: flex; flex-direction: column; justify-content: space-around; padding: 10px; border-bottom: 2px solid #00ff0033; }
         
-        #teclado { height: 62%; width: 100%; display: flex; overflow-x: auto; touch-action: none; background: #000; padding-top: 10px; gap: 2px; }
+        #teclado { height: 60%; width: 100%; display: flex; overflow-x: auto; touch-action: none; background: #000; padding: 5px; gap: 2px; }
         .tecla { flex-shrink: 0; position: relative; border-radius: 0 0 8px 8px; display: flex; justify-content: center; align-items: flex-end; padding-bottom: 15px; user-select: none; transition: all 0.1s; cursor: pointer; border: 1px solid #333; }
         .branca { width: 65px; height: 100%; background: #fff; color: #000; z-index: 1; }
-        .preta { width: 40px; height: 60%; background: #000; color: #fff; margin-left: -20px; margin-right: -20px; z-index: 2; border: 1px solid #444; }
+        .preta { width: 42px; height: 60%; background: #000; color: #fff; margin-left: -21px; margin-right: -21px; z-index: 2; border: 1px solid #444; }
         
         .tecla-ativa-branca { background: #00ff00 !important; transform: translateY(5px); box-shadow: 0 0 30px #00ff00; }
         .tecla-ativa-preta { background: #008000 !important; transform: translateY(5px); box-shadow: 0 0 25px #008000; }
@@ -29,14 +29,13 @@
         #container-progresso { width: 100%; height: 6px; background: #333; border-radius: 3px; overflow: hidden; display: none; margin-bottom: 5px; }
         #barra-progresso { width: 0%; height: 100%; background: #00ff00; transition: width .3s; }
         
-        .linha { display: flex; justify-content: space-between; align-items: center; width: 100%; gap: 8px; color: white; font-size: 0.75rem; }
+        .linha { display: flex; justify-content: space-between; align-items: center; width: 100%; gap: 10px; color: white; font-size: 0.75rem; }
         input[type=range] { flex: 1; accent-color: #00ff00; }
         
-        .btn { padding: 12px 20px; border-radius: 50px; border: none; font-weight: 700; cursor: pointer; color: #fff; font-size: 0.75rem; transition: 0.2s; text-transform: uppercase; text-align: center; }
-        .btn-menu { width: 260px; margin: 10px; border: 2px solid rgba(255,255,255,0.2); }
+        .btn { padding: 10px 15px; border-radius: 50px; border: none; font-weight: 700; cursor: pointer; color: #fff; font-size: 0.7rem; transition: 0.2s; text-transform: uppercase; }
+        .btn-menu { width: 260px; margin: 10px; border: 2px solid rgba(255,255,255,0.2); font-size: 0.8rem; }
         
-        #folha { position: absolute; top: 0; left: 0; width: 100%; height: 100%; background: #fff; z-index: 20; display: none; flex-direction: column; }
-        #txt-folha { flex: 1; padding: 15px; border: none; font-size: 1rem; }
+        select { background: #ff9800; color: #fff; border: none; padding: 8px; border-radius: 5px; font-weight: bold; flex: 1.5; }
     </style>
 </head>
 <body>
@@ -55,25 +54,25 @@
 
 <div id="t-j" class="tela" style="padding:0; background: #000;">
     <div id="painel">
-        <div id="folha">
-            <div style="display:flex; justify-content:space-between; background:#eee; padding:5px;"><b style="color:#000">RASCUNHO</b><button onclick="document.getElementById('folha').style.display='none'">X</button></div>
-            <textarea id="txt-folha" oninput="localStorage.setItem('piano_txt', this.value)"></textarea>
-        </div>
         <div id="container-progresso"><div id="barra-progresso"></div></div>
         <div class="linha">
-            <button class="btn" style="background:#f44336; padding: 5px 10px;" onclick="irMenu()">SAIR</button>
-            <b id="txt-m" style="color:#00ff00">LIVRE</b>
-            <button class="btn" style="background:#fff; color:#000; padding: 5px 10px;" onclick="document.getElementById('folha').style.display='flex'">📝 FOLHA</button>
-            <button id="btn-rec" class="btn" style="background:#555; padding: 5px 10px;" onclick="toggleRec()">⏺ REC</button>
+            <button class="btn" style="background:#f44336;" onclick="irMenu()">SAIR</button>
+            <b id="txt-m" style="color:#00ff00">MODO LIVRE</b>
+            <button id="btn-rec" class="btn" style="background:#555;" onclick="toggleRec()">⏺ REC</button>
         </div>
         <div class="linha">
+            <span>PITCH:</span><input type="range" id="pitch" min="0.5" max="2.0" step="0.1" value="1.0">
             <span>VOL:</span><input type="range" id="vol" min="0" max="1" step="0.1" value="0.7">
-            <select id="timbre" class="btn" style="background:#ff9800; padding: 5px; flex: 1;">
+        </div>
+        <div class="linha">
+            <select id="timbre">
                 <option value="harpa">🪕 HARPA</option>
                 <option value="piano">🎹 PIANO</option>
                 <option value="flauta">🥖 FLAUTA</option>
                 <option value="violino">🎻 VIOLINO</option>
+                <option value="sino">🔔 SINO</option>
             </select>
+            <button class="btn" style="background:#2196F3; flex: 1;" onclick="ecoAtivo=!ecoAtivo; this.innerText=ecoAtivo?'ECO: ON':'ECO: OFF'">ECO: ON</button>
         </div>
     </div>
     <div id="teclado"></div>
@@ -87,14 +86,13 @@
 <script>
 let ctx, mG, recorder, chunks = [];
 let notasAtivas = new Map();
-let mus = null, passo = 0, segurando = false;
+let mus = null, passo = 0, segurando = false, ecoAtivo = true, gravando = false;
 let listaS = JSON.parse(localStorage.getItem('p_v12') || '[]');
 
 const nms = ['Dó','Dó#','Ré','Ré#','Mi','Fá','Fá#','Sol','Sol#','Lá','Lá#','Si','Dó2','Dó#2','Ré2','Ré#2','Mi2','Fá2','Fá#2','Sol2','Sol#2','Lá2','Lá#2','Si2','Dó3'];
 
-// SEQUÊNCIAS COMPLETAS RESTAURADAS
 const banco = [
-    { id: 1, nome: "Bate o Sino (Completa)", seq: [[4,400],[4,400],[4,800],[-1,100],[4,400],[4,400],[4,800],[-1,100],[4,400],[7,400],[0,400],[2,400],[4,1200],[-1,200],[5,400],[5,400],[5,400],[5,400],[5,400],[4,400],[4,400],[4,200],[4,200],[4,400],[2,400],[2,400],[4,400],[2,800],[-1,400],[4,400],[4,400],[4,800],[-1,100],[4,400],[4,400],[4,800],[-1,100],[4,400],[7,400],[0,400],[2,400],[4,1200],[-1,200],[5,400],[5,400],[5,400],[5,400],[5,400],[4,400],[4,400],[4,200],[4,200],[7,400],[7,400],[5,400],[2,400],[0,1200]] },
+    { id: 1, nome: "Bate o Sino", seq: [[4,400],[4,400],[4,800],[-1,100],[4,400],[4,400],[4,800],[-1,100],[4,400],[7,400],[0,400],[2,400],[4,1200],[-1,200],[5,400],[5,400],[5,400],[5,400],[5,400],[4,400],[4,400],[4,200],[4,200],[4,400],[2,400],[2,400],[4,400],[2,800],[-1,400],[4,400],[4,400],[4,800],[-1,100],[4,400],[4,400],[4,800],[-1,100],[4,400],[7,400],[0,400],[2,400],[4,1200],[-1,200],[5,400],[5,400],[5,400],[5,400],[5,400],[4,400],[4,400],[4,200],[4,200],[7,400],[7,400],[5,400],[2,400],[0,1200]] },
     { id: 2, nome: "Ode à Alegria", seq: [[4,400],[4,400],[5,400],[7,400],[7,400],[5,400],[4,400],[2,400],[0,400],[0,400],[2,400],[4,400],[4,600],[2,200],[2,800],[-1,200],[4,400],[4,400],[5,400],[7,400],[7,400],[5,400],[4,400],[2,400],[0,400],[0,400],[2,400],[4,400],[2,600],[0,200],[0,800],[-1,300],[2,400],[2,400],[4,400],[0,400],[2,400],[4,200],[5,200],[4,400],[0,400],[2,400],[4,200],[5,200],[4,400],[2,400],[0,400],[2,400],[7,800],[-1,300],[4,400],[4,400],[5,400],[7,400],[7,400],[5,400],[4,400],[2,400],[0,400],[0,400],[2,400],[4,400],[2,600],[0,200],[0,800]] },
     { id: 3, nome: "Brilha Brilha Estrela", seq: [[0,400],[0,400],[7,400],[7,400],[9,400],[9,400],[7,800],[-1,200],[5,400],[5,400],[4,400],[4,400],[2,400],[2,400],[0,800],[-1,200],[7,400],[7,400],[5,400],[5,400],[4,400],[4,400],[2,800],[-1,200],[7,400],[7,400],[5,400],[5,400],[4,400],[4,400],[2,800],[-1,200],[0,400],[0,400],[7,400],[7,400],[9,400],[9,400],[7,800],[-1,200],[5,400],[5,400],[4,400],[4,400],[2,400],[2,400],[0,800]] },
     { id: 4, nome: "Parabéns", seq: [[0,300],[0,150],[2,450],[0,450],[5,450],[4,900],[-1,300],[0,300],[0,150],[2,450],[0,450],[7,450],[5,900],[-1,300],[0,300],[0,150],[12,450],[9,450],[5,450],[4,450],[2,900],[-1,300],[10,300],[10,150],[9,450],[5,450],[7,450],[5,900]] }
@@ -121,30 +119,42 @@ async function ligarTudo() {
 
 function som(f, id) {
     if(!ctx) return;
-    let t = timbre.value, vol = document.getElementById('vol').value;
-    let g = ctx.createGain(); g.connect(mG);
-    let osc = ctx.createOscillator(); osc.frequency.value = f;
+    let t = document.getElementById('timbre').value;
+    let vol = document.getElementById('vol').value;
+    let p = document.getElementById('pitch').value;
+    let freqReal = f * p;
+
+    let g = ctx.createGain();
+    g.connect(mG); // CONEXÃO REESTABELECIDA AQUI!
+
+    let osc = ctx.createOscillator();
+    osc.frequency.value = freqReal;
     let notaObj = { g: g, oscs: [osc], rel: 0.5 };
 
-    if (timbre.value === 'harpa') {
-        osc.type = 'sine';
+    if (t === 'harpa' || t === 'sino') {
+        osc.type = t === 'harpa' ? 'sine' : 'triangle';
         g.gain.setValueAtTime(0, ctx.currentTime);
         g.gain.linearRampToValueAtTime(vol, ctx.currentTime + 0.02);
-        g.gain.exponentialRampToValueAtTime(0.001, ctx.currentTime + 3);
+        g.gain.exponentialRampToValueAtTime(0.001, ctx.currentTime + (t==='harpa'?3:2));
         notaObj.rel = 2.0;
-    } else if (timbre.value === 'flauta') {
+    } else if (t === 'flauta') {
         osc.type = 'sine';
         let lfo = ctx.createOscillator(); lfo.frequency.value = 5.5;
-        let lfoG = ctx.createGain(); lfoG.gain.value = f * 0.012;
+        let lfoG = ctx.createGain(); lfoG.gain.value = freqReal * 0.012;
         lfo.connect(lfoG); lfoG.connect(osc.frequency);
         lfo.start(); notaObj.oscs.push(lfo);
         g.gain.setValueAtTime(0, ctx.currentTime);
         g.gain.linearRampToValueAtTime(vol, ctx.currentTime + 0.1);
+    } else if (t === 'violino') {
+        osc.type = 'sawtooth';
+        g.gain.setValueAtTime(0, ctx.currentTime);
+        g.gain.linearRampToValueAtTime(vol * 0.5, ctx.currentTime + 0.2);
     } else {
-        osc.type = (timbre.value === 'piano') ? 'triangle' : 'sawtooth';
-        g.gain.setValueAtTime(vol, ctx.currentTime);
+        osc.type = 'triangle';
+        g.gain.setValueAtTime(vol * 0.8, ctx.currentTime);
     }
 
+    osc.connect(g);
     osc.start();
     notasAtivas.set(id, notaObj);
 }
@@ -153,10 +163,11 @@ function off(id) {
     let n = notasAtivas.get(id);
     if(n) {
         let t = ctx.currentTime;
+        let d = ecoAtivo ? n.rel : 0.05;
         n.g.gain.cancelScheduledValues(t);
         n.g.gain.setValueAtTime(n.g.gain.value, t);
-        n.g.gain.exponentialRampToValueAtTime(0.001, t + n.rel);
-        n.oscs.forEach(o => o.stop(t + n.rel + 0.1));
+        n.g.gain.exponentialRampToValueAtTime(0.001, t + d);
+        n.oscs.forEach(o => o.stop(t + d + 0.1));
         notasAtivas.delete(id);
     }
 }
@@ -168,13 +179,13 @@ for(let i = 0; i < 25; i++) {
     let d = document.createElement('div');
     d.className = `tecla ` + (nms[i%12].includes('#') ? 'preta' : 'branca');
     d.id = id;
-    d.innerHTML = `<div class="progresso-nota"></div><small>${nms[i]}</small>`;
+    d.innerHTML = `<div class="progresso-nota"></div><small style="pointer-events:none; font-size:10px">${nms[i]}</small>`;
     d.onpointerdown = e => { d.setPointerCapture(e.pointerId); hStart(id, f); };
     d.onpointerup = e => hEnd(id);
     tcl.appendChild(d);
 }
 
-function hStart(id, f) { som(f, id); document.getElementById(id).classList.add(id.includes('preta')?'tecla-ativa-preta':'tecla-ativa-branca'); 
+function hStart(id, f) { ligarTudo(); som(f, id); document.getElementById(id).classList.add(nms[parseInt(id.slice(1))%12].includes('#')?'tecla-ativa-preta':'tecla-ativa-branca'); 
     if(mus && id === 'k' + mus.seq[passo][0]) {
         segurando = true;
         let p = document.getElementById(id).querySelector('.progresso-nota');
@@ -188,7 +199,7 @@ function hEnd(id) { off(id); document.getElementById(id).classList.remove('tecla
 }
 
 function irMenu() { fecharTelas(); document.getElementById('m-p').classList.add('ativa'); mus = null; }
-function irJogo() { fecharTelas(); document.getElementById('t-j').classList.add('ativa'); document.getElementById('txt-m').innerText = "MODO LIVRE"; document.getElementById('container-progresso').style.display = 'none'; }
+function irJogo() { fecharTelas(); document.getElementById('t-j').classList.add('ativa'); }
 function irMus() { 
     fecharTelas(); document.getElementById('t-m').classList.add('ativa');
     const l = document.getElementById('lista-m'); l.innerHTML = '';
@@ -226,5 +237,5 @@ function irSalvas() {
 }
 </script>
 </body>
-    </html>
-                
+        </html>
+    
