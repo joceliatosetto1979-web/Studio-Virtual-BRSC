@@ -1,373 +1,456 @@
-<!doctype html>
+<!DOCTYPE html>
 <html lang="pt-BR">
 <head>
-<meta charset="utf-8" />
-<meta name="viewport" content="width=device-width,initial-scale=1" />
-<title>PianoCoach — Lessons, Feedback, Partitura & PWA</title>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <title>Neon Rhythm - Mobile</title>
+    <style>
+        @import url('https://fonts.googleapis.com/css2?family=Orbitron:wght@500;700;900&display=swap');
 
-<!-- Libs -->
-<script src="https://cdn.jsdelivr.net/npm/opensheetmusicdisplay@1.9.6/build/opensheetmusicdisplay.min.js"></script>
-<script src="https://cdn.jsdelivr.net/npm/soundfont-player@0.12.0/dist/soundfont-player.min.js"></script>
-<!-- MidiPlayerJS as module (will be lazy-imported) -->
+        :root {
+            --bg-color: #0b0c10;
+            --primary: #45f3ff;
+            --secondary: #ff007c;
+            --text: #c5c6c7;
+        }
 
-<style>
-  /* básico + mobile-first */
-  :root{--bg:#f3f6fb;--card:#fff;--muted:#6b7280;--accent:#ffb84d}
-  body{font-family:system-ui, -apple-system, "Segoe UI", Roboto, Arial; margin:0; background:var(--bg); color:#111}
-  header{display:flex;gap:12px;align-items:center;justify-content:space-between;padding:12px}
-  .brand{display:flex;gap:12px;align-items:center}
-  h1{margin:0;font-size:18px}
-  .controls{display:flex;gap:10px;flex-wrap:wrap;align-items:center}
-  button,select,input{padding:8px;border-radius:8px;border:1px solid #ddd;background:#fff}
-  main{padding:12px;display:grid;grid-template-columns:1fr 420px;gap:12px}
-  @media(max-width:980px){ main{grid-template-columns:1fr} }
-  .card{background:var(--card);padding:10px;border-radius:10px;box-shadow:0 6px 18px rgba(0,0,0,0.06)}
-  #sheetContainer{height:320px;overflow:hidden}
-  #sheetInner{transition:transform .12s linear; width:1200px}
-  #keyboardWrap{overflow-x:auto;padding:6px;border-radius:8px;background:linear-gradient(180deg,#fff,#f9fafb)}
-  #keyboard{display:flex;height:200px;align-items:flex-end;touch-action:pan-x;user-select:none}
-  .key{box-sizing:border-box;border:1px solid #d1d5db;background:#fff;border-radius:6px;display:flex;align-items:flex-end;justify-content:center;font-size:11px;padding-bottom:6px}
-  .key.black{background:#111;color:#fff;height:120px;margin-left:-20px;margin-right:-20px;z-index:3}
-  .key.k-active{background:var(--accent)}
-  .muted{color:var(--muted);font-size:13px}
-  .lesson-list{display:flex;flex-direction:column;gap:6px}
-  .progress{height:10px;background:#eee;border-radius:6px;overflow:hidden}
-  .progress > div{height:100%;background:linear-gradient(90deg,#ffb84d,#ff8a4d)}
-  .small{font-size:13px}
-  footer{padding:12px;text-align:center;color:var(--muted);font-size:13px}
-</style>
+        * {
+            box-sizing: border-box;
+            user-select: none; /* Evita selecionar texto ao tocar */
+            -webkit-user-select: none;
+        }
+
+        body {
+            margin: 0;
+            padding: 0;
+            background-color: var(--bg-color);
+            color: white;
+            font-family: 'Orbitron', sans-serif;
+            overflow: hidden; /* Evita rolagem na tela */
+            width: 100vw;
+            height: 100vh;
+        }
+
+        /* --- MENU --- */
+        #menu {
+            position: absolute;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            display: flex;
+            flex-direction: column;
+            justify-content: center;
+            align-items: center;
+            background: radial-gradient(circle at center, #1f2833 0%, #0b0c10 100%);
+            z-index: 10;
+            padding: 20px;
+            text-align: center;
+        }
+
+        h1 {
+            font-size: 2.5rem;
+            margin-bottom: 10px;
+            color: transparent;
+            -webkit-text-stroke: 1px var(--primary);
+            text-shadow: 0 0 15px rgba(69, 243, 255, 0.5);
+            letter-spacing: 2px;
+        }
+
+        p.subtitle {
+            color: var(--text);
+            font-size: 0.9rem;
+            margin-bottom: 40px;
+        }
+
+        .upload-btn-wrapper {
+            position: relative;
+            overflow: hidden;
+            display: inline-block;
+            margin-bottom: 20px;
+        }
+
+        .btn-upload {
+            border: 2px dashed var(--primary);
+            color: var(--primary);
+            background-color: transparent;
+            padding: 15px 30px;
+            border-radius: 10px;
+            font-size: 1rem;
+            font-family: 'Orbitron', sans-serif;
+            cursor: pointer;
+            transition: all 0.3s ease;
+        }
+
+        .upload-btn-wrapper input[type=file] {
+            font-size: 100px;
+            position: absolute;
+            left: 0;
+            top: 0;
+            opacity: 0;
+            cursor: pointer;
+            height: 100%;
+        }
+
+        #playBtn {
+            background: var(--secondary);
+            color: white;
+            border: none;
+            padding: 15px 50px;
+            font-size: 1.2rem;
+            font-family: 'Orbitron', sans-serif;
+            font-weight: bold;
+            border-radius: 30px;
+            box-shadow: 0 0 20px rgba(255, 0, 124, 0.6);
+            cursor: pointer;
+            opacity: 0.5;
+            pointer-events: none; /* Desativado inicialmente */
+            transition: all 0.3s ease;
+        }
+
+        #playBtn.active {
+            opacity: 1;
+            pointer-events: auto;
+            transform: scale(1.05);
+        }
+
+        #playBtn.active:active {
+            transform: scale(0.95);
+        }
+
+        #status {
+            margin-top: 20px;
+            font-size: 0.9rem;
+            color: var(--primary);
+            min-height: 20px;
+        }
+
+        /* --- JOGO --- */
+        #gameContainer {
+            position: absolute;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            display: none; /* Escondido até o jogo começar */
+        }
+
+        canvas {
+            display: block;
+            width: 100%;
+            height: 100%;
+        }
+
+        #ui {
+            position: absolute;
+            top: 20px;
+            left: 20px;
+            font-size: 1.5rem;
+            color: white;
+            text-shadow: 0 0 10px var(--primary);
+            pointer-events: none;
+        }
+    </style>
 </head>
 <body>
 
-<header>
-  <div class="brand">
-    <h1>PianoCoach</h1>
-    <div class="muted small">Aulas + feedback em tempo real</div>
-  </div>
+    <div id="menu">
+        <h1>NEON BEAT</h1>
+        <p class="subtitle">Escolha um áudio/vídeo da galeria (Máx: 5 min)</p>
 
-  <div class="controls">
-    <select id="instrumentSelect">
-      <option value="acoustic_grand_piano">Piano de cauda</option>
-      <option value="electric_piano_1">Piano digital</option>
-      <option value="orchestral_harp">Harpa</option>
-    </select>
-    <button id="btnLoadInstr">Carregar Timbre</button>
-
-    <label class="small muted">Teclas visíveis
-      <input id="visibleKeysRange" type="range" min="12" max="88" value="36" />
-    </label>
-    <button id="btnToggleMic">Ativar Microfone</button>
-    <button id="btnOpenLessons">Aulas</button>
-    <button id="btnInstallPWA" style="display:none">Instalar</button>
-  </div>
-</header>
-
-<main>
-  <section>
-    <div id="sheetPanel" class="card">
-      <div style="display:flex;gap:8px;align-items:center;margin-bottom:6px">
-        <div style="flex:1">
-          <strong id="songTitle">Nenhuma partitura</strong>
-          <div class="muted small" id="songMeta">Use MusicXML / MIDI ou escolha uma lição.</div>
+        <div class="upload-btn-wrapper">
+            <button class="btn-upload" id="uploadLabel">📁 Selecionar Arquivo</button>
+            <input type="file" id="fileInput" accept="audio/*, video/*">
         </div>
-        <div style="display:flex;gap:6px">
-          <input id="fileXML" type="file" accept=".xml,.musicxml" />
-          <input id="fileMID" type="file" accept=".mid,.midi" />
-        </div>
-      </div>
 
-      <div id="sheetContainer"><div id="sheetInner"></div></div>
-
-      <div style="display:flex;gap:8px;align-items:center;margin-top:8px">
-        <button id="btnLessonPlay" disabled>Play lição</button>
-        <button id="btnLessonPause" disabled>Pause</button>
-        <button id="btnLessonStop" disabled>Stop</button>
-
-        <label class="small muted">BPM <input id="bpm" type="number" min="30" max="300" value="90" style="width:80px" /></label>
-        <label class="small muted">Metrônomo <select id="metroSound"><option value="click">Clique</option><option value="piano">Piano</option></select></label>
-        <span id="status" class="muted small">Pronto</span>
-      </div>
+        <button id="playBtn">TOCAR</button>
+        <div id="status">Aguardando mídia...</div>
     </div>
 
-    <div id="keyboardPanel" class="card" style="margin-top:12px">
-      <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:8px">
-        <div class="muted small">Teclado — toque para praticar</div>
-        <div class="muted small">Visíveis: <span id="visibleCount">36</span></div>
-      </div>
-      <div id="keyboardWrap"><div id="keyboard"></div></div>
-    </div>
-  </section>
-
-  <aside>
-    <div class="card" style="margin-bottom:12px">
-      <h3 class="small">Aulas & Biblioteca</h3>
-      <div class="lesson-list" id="lessonList"></div>
+    <div id="gameContainer">
+        <div id="ui">SCORE: <span id="scoreDisplay">0</span></div>
+        <canvas id="gameCanvas"></canvas>
     </div>
 
-    <div class="card" style="margin-bottom:12px">
-      <h3 class="small">Feedback ao vivo</h3>
-      <div class="muted small">Microfone: <span id="micStatus">desligado</span></div>
-      <div style="margin-top:8px">
-        <div>Última nota detectada: <strong id="detectedNote">—</strong></div>
-        <div>Erro (semitons): <strong id="detectedOffset">—</strong></div>
-        <div style="margin-top:8px">Precisão: <div class="progress"><div id="scoreBar" style="width:0%"></div></div></div>
-        <div style="margin-top:8px"><button id="btnCalibrate">Calibrar Latência</button> <span class="muted small">(tente bater o metrônomo e ajustar)</span></div>
-      </div>
-    </div>
+    <script>
+        const canvas = document.getElementById('gameCanvas');
+        const ctx = canvas.getContext('2d');
+        const menu = document.getElementById('menu');
+        const gameContainer = document.getElementById('gameContainer');
+        const fileInput = document.getElementById('fileInput');
+        const playBtn = document.getElementById('playBtn');
+        const statusText = document.getElementById('status');
+        const uploadLabel = document.getElementById('uploadLabel');
+        const scoreDisplay = document.getElementById('scoreDisplay');
 
-    <div class="card">
-      <h3 class="small">Progresso</h3>
-      <div class="muted small">Seu progresso é salvo localmente</div>
-      <div style="margin-top:8px">
-        <div>Lições concluídas: <span id="lessonsDone">0</span></div>
-        <div style="margin-top:6px" class="progress"><div id="globalProgress" style="width:0%"></div></div>
-      </div>
-    </div>
-  </aside>
-</main>
+        // Ajustar canvas para tela do celular
+        canvas.width = window.innerWidth;
+        canvas.height = window.innerHeight;
 
-<footer>
-  PianoCoach — demo — Algumas features avançadas (PWA, MIDI, MusicXML, feedback por microfone). Veja instruções no topo do arquivo.
-</footer>
+        // Configurações do jogo
+        const COLS = 4;
+        const COL_WIDTH = canvas.width / COLS;
+        const HIT_AREA_HEIGHT = canvas.height * 0.15; // Área de toque na base
+        const HIT_LINE_Y = canvas.height - HIT_AREA_HEIGHT;
+        const NOTE_HEIGHT = canvas.height * 0.08;
+        const NOTE_SPEED = canvas.height * 0.6; // Velocidade baseada na altura da tela
+        const MAX_DURATION = 300; // 5 minutos
 
-<!-- ================= LIBS & SCRIPTS ================= -->
-<script>
-/* ------------------ Config & state ------------------ */
-const LOW_MIDI = 21, HIGH_MIDI = 108;
-let audioContext = null;
-let instrument = null;
-let currentInstrument = document.getElementById('instrumentSelect').value;
-let timeline = []; // array de eventos {midi,start,duration}
-let osmd = null;
-let midiPlayerLive = null; // live midi player instance (if MIDI used)
-let scheduled = [];
-let playStart = 0, pausedOffset = 0, isPlaying=false;
-let svgNotes = [];
-let highlightBox = null;
-let micStream = null, micAnalyzer = null;
-let latencyComp = 0; // ms to compensate (calib)
-let userProgress = JSON.parse(localStorage.getItem('pianocoach_progress')||'{}');
-const lessons = [
-  { id:'lesson1', title:'Twinkle (Right hand)', file:null, events:[
-      // quick demo events (midi, start, dur)
-      {midi:64,start:0,duration:.6},{midi:64,start:.7,duration:.6},{midi:67,start:1.4,duration:.6},{midi:67,start:2.1,duration:.6},
-      {midi:69,start:2.8,duration:.6},{midi:69,start:3.5,duration:.6},{midi:67,start:4.2,duration:1.2}
-    ], bpm: 80 },
-  { id:'lesson2', title:'Ode to Joy (start)', file:null, events:[
-      {midi:64,start:0,duration:.5},{midi:64,start:.6,duration:.5},{midi:65,start:1.2,duration:.5},{midi:67,start:1.8,duration:.9}
-    ], bpm:90 }
-];
+        // Cores vibrantes para cada coluna
+        const colColors = ['#ff0055', '#00f3ff', '#39ff14', '#ffea00'];
 
-/* ------------------ Utilities ------------------ */
-function midiToNoteName(m){ const N=['C','C#','D','D#','E','F','F#','G','G#','A','A#','B']; return N[m%12] + (Math.floor(m/12)-1); }
-function clamp(v,a,b){return Math.max(a,Math.min(b,v));}
+        let audioContext;
+        let audioBuffer;
+        let audioSource;
+        let startTime = 0;
+        let notes = [];
+        let isPlaying = false;
+        let score = 0;
 
-/* ------------------ Keyboard build ------------------ */
-const keyboard = document.getElementById('keyboard');
-let keyElems = {};
-function buildKeyboard(){
-  keyboard.innerHTML=''; keyElems={};
-  for(let m=LOW_MIDI;m<=HIGH_MIDI;m++){
-    const n = midiToNoteName(m);
-    const el = document.createElement('div');
-    el.className = 'key' + (n.includes('#')? ' black':'');
-    el.dataset.midi = m; el.title = n;
-    el.innerHTML = '<div style="padding:6px 4px 8px 4px;font-size:11px">'+n.replace('#','♯')+'</div>';
-    el.addEventListener('pointerdown', keyPointerDown);
-    el.addEventListener('pointerup', keyPointerUp);
-    el.addEventListener('pointercancel', keyPointerUp);
-    keyboard.appendChild(el); keyElems[m]=el;
-  }
-}
-buildKeyboard();
+        // Controle de toques (Mobile)
+        const keysPressed = { 0: false, 1: false, 2: false, 3: false };
 
-/* adjust visible keys */
-const visibleKeysRange = document.getElementById('visibleKeysRange');
-const visibleCount = document.getElementById('visibleCount');
-function adjustKeySizes(visible){
-  visibleCount.textContent = visible;
-  const wrapWidth = Math.max(280, document.getElementById('keyboardWrap').clientWidth - 24);
-  const keyW = Math.max(20, Math.floor(wrapWidth / visible));
-  for(let m=LOW_MIDI;m<=HIGH_MIDI;m++){
-    const el = keyElems[m]; if(!el) continue;
-    if(el.classList.contains('black')){
-      el.style.width = Math.floor(keyW*0.66)+'px';
-      el.style.marginLeft = '-' + Math.floor(keyW*0.33)+'px';
-      el.style.marginRight = '-' + Math.floor(keyW*0.33)+'px';
-      el.style.height = '120px';
-    } else {
-      el.style.width = keyW+'px';
-      el.style.height = '180px';
-      el.style.marginLeft='0.5px'; el.style.marginRight='0.5px';
-    }
-  }
-}
-visibleKeysRange.addEventListener('input', ()=> adjustKeySizes(parseInt(visibleKeysRange.value)));
-adjustKeySizes(parseInt(visibleKeysRange.value));
+        // Processar o arquivo quando escolhido
+        fileInput.addEventListener('change', async (e) => {
+            const file = e.target.files[0];
+            if (!file) return;
 
-/* center on midi */
-function scrollToMidi(midi){ const el = keyElems[midi]; if(!el) return; const wrap = document.getElementById('keyboardWrap'); const wrapRect = wrap.getBoundingClientRect(); const target = el.offsetLeft - (wrapRect.width/2) + (el.offsetWidth/2); wrap.scrollTo({left:Math.max(0,target),behavior:'smooth'}); }
-document.getElementById('btnToggleMic').addEventListener('click', toggleMic);
-document.getElementById('btnLoadInstr').addEventListener('click', ()=> loadInstrument(document.getElementById('instrumentSelect').value));
+            uploadLabel.innerText = "🎵 " + (file.name.length > 15 ? file.name.substring(0, 15) + "..." : file.name);
+            statusText.innerText = "Lendo arquivo...";
+            playBtn.classList.remove('active');
 
-/* ------------------ Audio & soundfont ------------------ */
-async function initAudio(){ if(!audioContext) audioContext = new (window.AudioContext||window.webkitAudioContext)(); }
-async function loadInstrument(name){
-  await initAudio(); document.getElementById('status').textContent = 'Carregando timbre...';
-  try{ instrument = await Soundfont.instrument(audioContext, name, {soundfont:'MusyngKite'}); currentInstrument=name; document.getElementById('status').textContent='Timbre carregado: '+name; }
-  catch(e){ console.error(e); document.getElementById('status').textContent='Erro ao carregar timbre'; }
-}
-async function playNoteImmediate(midi, dur=0.6, when=0){
-  if(!instrument) await loadInstrument(currentInstrument);
-  const note = midiToNoteName(midi);
-  try { if(when>0) instrument.play(note, when, {duration:dur}); else instrument.play(note, audioContext.currentTime, {duration:dur}); } catch(e){ console.warn(e); }
-}
-function flashKey(m, ms=220){ const el = keyElems[m]; if(!el) return; el.classList.add('k-active'); setTimeout(()=> el.classList.remove('k-active'), ms); }
+            // Criar o contexto de áudio
+            if (!audioContext) {
+                audioContext = new (window.AudioContext || window.webkitAudioContext)();
+            }
 
-/* ------------------ Key pointer handlers (multitouch safe) ------------------ */
-function keyPointerDown(e){ e.preventDefault(); const el=e.currentTarget; const midi=parseInt(el.dataset.midi); if(audioContext && audioContext.state==='suspended') audioContext.resume(); playNoteImmediate(midi,0.7); el.classList.add('k-active'); try{ el.setPointerCapture && el.setPointerCapture(e.pointerId);}catch(e){} }
-function keyPointerUp(e){ const el=e.currentTarget; el.classList.remove('k-active'); try{ el.releasePointerCapture && el.releasePointerCapture(e.pointerId);}catch(e){} }
+            const arrayBuffer = await file.arrayBuffer();
+            
+            try {
+                audioBuffer = await audioContext.decodeAudioData(arrayBuffer);
+                
+                if (audioBuffer.duration > MAX_DURATION) {
+                    statusText.innerText = "Erro: O arquivo tem mais de 5 minutos!";
+                    statusText.style.color = "#ff007c";
+                    return;
+                }
 
-/* ------------------ OSMD (MusicXML) render & parse ------------------ */
-const fileXML = document.getElementById('fileXML');
-fileXML.addEventListener('change', async (evt)=>{
-  const f = evt.target.files[0]; if(!f) return;
-  const txt = await f.text(); loadMusicXML(txt);
-});
-async function loadMusicXML(xmlText){
-  document.getElementById('status').textContent = 'Renderizando partitura...';
-  if(!osmd) osmd = new opensheetmusicdisplay.OpenSheetMusicDisplay(document.getElementById('sheetInner'), {autoResize:true});
-  try{
-    await osmd.load(xmlText); osmd.render();
-    document.getElementById('songTitle').textContent = 'Partitura carregada';
-    // parse timeline (simple parser)
-    timeline = parseMusicXML(xmlText);
-    document.getElementById('status').textContent = 'Partitura pronta — eventos: '+timeline.length;
-    document.getElementById('btnLessonPlay').disabled = (timeline.length===0);
-    prepareSvgNotes();
-  }catch(e){ console.error(e); document.getElementById('status').textContent = 'Erro renderizar XML'; }
-}
-function parseMusicXML(xml){
-  const parser = new DOMParser(); const doc = parser.parseFromString(xml,'application/xml');
-  let divisions = 1; const d = doc.querySelector('divisions'); if(d) divisions = parseInt(d.textContent||'1');
-  let tempo = 120; const s = doc.querySelector('sound[tempo]'); if(s) tempo = parseFloat(s.getAttribute('tempo'))||tempo;
-  const events = []; doc.querySelectorAll('part').forEach(part=>{
-    let local=0;
-    part.querySelectorAll('measure').forEach(measure=>{
-      measure.querySelectorAll('note').forEach(note=>{
-        if(note.querySelector('rest')){ const durEl = note.querySelector('duration'); local += durEl ? parseInt(durEl.textContent||'0') : 0; return; }
-        const pitch = note.querySelector('pitch'); if(!pitch) return;
-        const step = pitch.querySelector('step')?.textContent||'C'; const alter = pitch.querySelector('alter')?parseInt(pitch.querySelector('alter').textContent):0; const octave = parseInt(pitch.querySelector('octave')?.textContent||'4');
-        const midi = pitchToMidi(step,alter,octave);
-        const durDiv = parseInt(note.querySelector('duration')?.textContent||'0');
-        const start = (local/divisions)*(60/tempo); const duration = (durDiv/divisions)*(60/tempo);
-        events.push({midi,start,duration}); local += durDiv;
-      });
-    });
-  });
-  events.sort((a,b)=>a.start-b.start); return events;
-}
-function pitchToMidi(step,alter,octave){ const base={C:0,D:2,E:4,F:5,G:7,A:9,B:11}[step]; return (octave+1)*12 + (base + (alter||0)); }
+                statusText.innerText = "Áudio pronto! Clique em TOCAR.";
+                statusText.style.color = "#39ff14";
+                
+                // Analisa as batidas
+                notes = detectBeats(audioBuffer);
+                
+                // Ativa o botão de jogar
+                playBtn.classList.add('active');
+            } catch (err) {
+                statusText.innerText = "Erro ao ler o áudio. Tente outro arquivo.";
+                statusText.style.color = "#ff007c";
+            }
+        });
 
-/* ------------------ SVG mapping & highlight ------------------ */
-function prepareSvgNotes(){
-  setTimeout(()=>{
-    const svg = document.getElementById('sheetInner').querySelector('svg');
-    svgNotes = [];
-    if(!svg) return;
-    svg.querySelectorAll('*').forEach(el=>{
-      const cls = el.getAttribute && el.getAttribute('class') || '';
-      if(/note|notehead|note-head|graphical/i.test(cls)) svgNotes.push(el);
-    });
-    if(svgNotes.length < 20){
-      const small = svg.querySelectorAll('path,circle'); svgNotes = Array.from(small).slice(0, Math.min(600, small.length));
-    }
-    if(!highlightBox){
-      highlightBox = document.createElement('div'); highlightBox.style.position='absolute'; highlightBox.style.pointerEvents='none';
-      highlightBox.style.background='rgba(255,200,80,0.18)'; highlightBox.style.border='2px solid rgba(255,200,80,0.28)';
-      highlightBox.style.borderRadius='8px'; highlightBox.style.display='none'; document.body.appendChild(highlightBox);
-    }
-  },400);
-}
-function highlightSvg(idx){
-  if(!svgNotes || svgNotes.length===0 || !highlightBox) return;
-  const el = svgNotes[Math.min(idx, svgNotes.length-1)];
-  if(!el) return;
-  const r = el.getBoundingClientRect();
-  highlightBox.style.left = (r.left + window.scrollX) + 'px';
-  highlightBox.style.top = (r.top + window.scrollY) + 'px';
-  highlightBox.style.width = Math.max(12, r.width) + 'px';
-  highlightBox.style.height = Math.max(12, r.height) + 'px';
-  highlightBox.style.display = 'block';
-  setTimeout(()=> highlightBox.style.display='none', 380);
-}
+        // Botão Jogar
+        playBtn.addEventListener('click', () => {
+            if (!audioBuffer) return;
+            
+            // Oculta menu, mostra jogo
+            menu.style.display = 'none';
+            gameContainer.style.display = 'block';
+            
+            // É necessário dar "resume" no áudio após interação do usuário em celulares
+            if(audioContext.state === 'suspended') {
+                audioContext.resume();
+            }
 
-/* ------------------ Playback scheduler (AudioContext-based precision) ------------------ */
-function scheduleTimeline(baseTime){
-  // baseTime = audioContext.currentTime - offset
-  const now = audioContext.currentTime;
-  timeline.forEach((ev,idx)=>{
-    const when = baseTime + ev.start;
-    // schedule instrument
-    try{ playNoteImmediate(ev.midi, ev.duration, when); } catch(e){ console.warn(e); }
-    // schedule UI highlights using setTimeout relative to now
-    setTimeout(()=>{ flashKey(ev.midi, Math.max(120, ev.duration*1000)); highlightSvg(idx); maybeScrollForIdx(idx); }, Math.max(0, (when - now - (latencyComp/1000))*1000));
-  });
-  // schedule finish
-  const last = timeline[timeline.length-1];
-  if(last){
-    const total = last.start + last.duration;
-    setTimeout(()=>{ isPlaying=false; document.getElementById('status').textContent='Finalizado'; document.getElementById('btnLessonPlay').disabled=false; }, Math.ceil((baseTime + total - audioContext.currentTime)*1000)+300);
-  }
-}
-function maybeScrollForIdx(idx){
-  if(!svgNotes || svgNotes.length===0) return;
-  const el = svgNotes[Math.min(idx, svgNotes.length-1)];
-  if(!el) return;
-  const rect = el.getBoundingClientRect(), cont = document.getElementById('sheetContainer').getBoundingClientRect();
-  const svg = document.getElementById('sheetInner').querySelector('svg'); if(!svg) return;
-  const svgRect = svg.getBoundingClientRect();
-  const targetX = (rect.left + rect.right)/2 - svgRect.left;
-  const desired = targetX - cont.width*0.35;
-  const maxX = Math.max(0, svgRect.width - cont.width);
-  const tx = Math.max(0, Math.min(desired, maxX));
-  document.getElementById('sheetInner').style.transform = `translateX(${-tx}px)`;
-}
+            startGame();
+        });
 
-/* controls Play/Pause/Stop */
-document.getElementById('btnLessonPlay').addEventListener('click', async ()=>{
-  if(!timeline || timeline.length===0){ document.getElementById('status').textContent='Nada para tocar'; return; }
-  await initAudio();
-  playStart = audioContext.currentTime - pausedOffset;
-  isPlaying=true; document.getElementById('btnLessonPlay').disabled=true; document.getElementById('btnLessonPause').disabled=false;
-  scheduleTimeline(playStart);
-  document.getElementById('status').textContent='Tocando...';
-});
-document.getElementById('btnLessonPause').addEventListener('click', ()=>{ pausedOffset = audioContext.currentTime - playStart; isPlaying=false; document.getElementById('btnLessonPlay').disabled=false; document.getElementById('btnLessonPause').disabled=true; document.getElementById('status').textContent='Pausado'; });
-document.getElementById('btnLessonStop').addEventListener('click', ()=>{ isPlaying=false; pausedOffset=0; document.getElementById('btnLessonPlay').disabled=false; document.getElementById('btnLessonPause').disabled=true; document.getElementById('status').textContent='Parado'; });
+        // Eventos de Toque na tela (Mobile Touch)
+        canvas.addEventListener('touchstart', handleTouch, { passive: false });
+        canvas.addEventListener('touchmove', handleTouch, { passive: false });
+        canvas.addEventListener('touchend', releaseTouch, { passive: false });
+        canvas.addEventListener('touchcancel', releaseTouch, { passive: false });
 
-/* ------------------ MIDI file support (live) ------------------ */
-document.getElementById('fileMID').addEventListener('change', async (e)=>{
-  const f = e.target.files[0]; if(!f) return;
-  const ab = await f.arrayBuffer();
-  // lazy import MidiPlayerJS via skypack
-  const mod = await import('https://cdn.skypack.dev/midi-player-js');
-  const PlayerClass = mod.Player;
-  if(window._liveMidi) try{ window._liveMidi.stop(); } catch(e){}
-  const player = new PlayerClass(function(evt){ /* dummy */ });
-  player.on('midiEvent', (evt)=>{
-    if(evt.name === 'Note on' && evt.velocity>0){
-      const midi = evt.noteNumber;
-      playNoteImmediate(midi, 0.5);
-      flashKey(midi,200);
-    }
-  });
-  player.loadArrayBuffer(ab);
-  window._liveMidi = player;
-  document.getElementById('status').textContent = 'MIDI pronto — pressione Play para ouvir via player';
-  // override Play/Pause/Stop to use player
-  document.getElementById('btnLessonPlay').onclick = ()=> { player.play(); document.getElementById('status').textContent='Tocando MIDI...'; };
-  document.getElementById('btnLessonPause').onclick = ()=> { player.pause(); document.getElementById('status').textContent='Pausado (MIDI)'; };
-  document.getElementById('btnLessonStop').onclick = ()=> { player.stop(); document.getElementById('status').textContent='Parado (MIDI)'; };
-});
-    
+        function handleTouch(e) {
+            e.preventDefault(); // Impede rolagem ou zoom
+            // Reseta todas as teclas
+            for(let key in keysPressed) keysPressed[key] = false;
+            
+            // Verifica onde os dedos estão tocando
+            for (let i = 0; i < e.touches.length; i++) {
+                let touch = e.touches[i];
+                let col = Math.floor(touch.clientX / COL_WIDTH);
+                if(col >= 0 && col < COLS) {
+                    keysPressed[col] = true;
+                }
+            }
+        }
+
+        function releaseTouch(e) {
+            e.preventDefault();
+            for(let key in keysPressed) keysPressed[key] = false;
+            // Reativa as teclas que ainda têm dedos tocando
+            for (let i = 0; i < e.touches.length; i++) {
+                let touch = e.touches[i];
+                let col = Math.floor(touch.clientX / COL_WIDTH);
+                if(col >= 0 && col < COLS) {
+                    keysPressed[col] = true;
+                }
+            }
+        }
+
+        // Algoritmo de detecção de batidas
+        function detectBeats(buffer) {
+            const data = buffer.getChannelData(0);
+            const sampleRate = buffer.sampleRate;
+            const step = Math.floor(sampleRate * 0.1); 
+            const generatedNotes = [];
+
+            let totalVolume = 0;
+            for(let i = 0; i < data.length; i += 100) {
+                totalVolume += Math.abs(data[i]);
+            }
+            const averageVolume = totalVolume / (data.length / 100);
+            const threshold = averageVolume * 2.8; // Sensibilidade do ritmo
+
+            for (let i = 0; i < data.length; i += step) {
+                let max = 0;
+                for (let j = 0; j < step && (i + j) < data.length; j++) {
+                    let val = Math.abs(data[i + j]);
+                    if (val > max) max = val;
+                }
+
+                if (max > threshold) {
+                    generatedNotes.push({
+                        time: i / sampleRate,
+                        col: Math.floor(Math.random() * COLS),
+                        hit: false,
+                        missed: false
+                    });
+                }
+            }
+            return generatedNotes;
+        }
+
+        function startGame() {
+            if (audioSource) audioSource.disconnect();
+            
+            audioSource = audioContext.createBufferSource();
+            audioSource.buffer = audioBuffer;
+            audioSource.connect(audioContext.destination);
+            
+            score = 0;
+            scoreDisplay.innerText = score;
+            isPlaying = true;
+            startTime = audioContext.currentTime;
+            
+            audioSource.start();
+            
+            audioSource.onended = () => {
+                isPlaying = false;
+                setTimeout(() => {
+                    alert("Fim da música! Pontuação Final: " + score);
+                    menu.style.display = 'flex';
+                    gameContainer.style.display = 'none';
+                    playBtn.classList.remove('active');
+                    uploadLabel.innerText = "📁 Selecionar Arquivo";
+                    statusText.innerText = "Jogue novamente!";
+                }, 1000);
+            };
+
+            requestAnimationFrame(gameLoop);
+        }
+
+        function gameLoop() {
+            if (!isPlaying) return;
+
+            const currentTime = audioContext.currentTime - startTime;
+
+            // Limpa o canvas
+            ctx.fillStyle = 'rgba(11, 12, 16, 0.8)'; // Efeito de rastro leve
+            ctx.fillRect(0, 0, canvas.width, canvas.height);
+
+            // Desenha as pistas (Colunas)
+            for (let i = 0; i < COLS; i++) {
+                // Divisórias
+                ctx.strokeStyle = 'rgba(255, 255, 255, 0.05)';
+                ctx.lineWidth = 1;
+                ctx.beginPath();
+                ctx.moveTo(i * COL_WIDTH, 0);
+                ctx.lineTo(i * COL_WIDTH, canvas.height);
+                ctx.stroke();
+
+                // Área de toque inferior
+                ctx.fillStyle = keysPressed[i] ? 'rgba(255, 255, 255, 0.2)' : 'rgba(255, 255, 255, 0.05)';
+                ctx.fillRect(i * COL_WIDTH, HIT_LINE_Y, COL_WIDTH, HIT_AREA_HEIGHT);
+
+                // Efeito neon nos botões pressionados
+                if (keysPressed[i]) {
+                    ctx.shadowBlur = 20;
+                    ctx.shadowColor = colColors[i];
+                    ctx.fillStyle = colColors[i];
+                    ctx.fillRect((i * COL_WIDTH) + 5, HIT_LINE_Y, COL_WIDTH - 10, 5);
+                    ctx.shadowBlur = 0; // reseta
+                }
+            }
+
+            // Linha de acerto (Hit Line)
+            ctx.strokeStyle = 'rgba(255, 255, 255, 0.3)';
+            ctx.lineWidth = 2;
+            ctx.beginPath();
+            ctx.moveTo(0, HIT_LINE_Y);
+            ctx.lineTo(canvas.width, HIT_LINE_Y);
+            ctx.stroke();
+
+            // Lógica das Notas
+            notes.forEach(note => {
+                if (note.hit || note.missed) return;
+
+                const y = HIT_LINE_Y - ((note.time - currentTime) * NOTE_SPEED);
+
+                // Se a nota passou muito da linha e não foi tocada
+                if (y > canvas.height) {
+                    note.missed = true;
+                    return;
+                }
+
+                // Desenha a nota se estiver na tela
+                if (y > -NOTE_HEIGHT && y < canvas.height) {
+                    // Visual da nota (Cores neon dependendo da coluna)
+                    ctx.shadowBlur = 15;
+                    ctx.shadowColor = colColors[note.col];
+                    ctx.fillStyle = colColors[note.col];
+                    
+                    // Nota com cantos arredondados simulados
+                    const margin = 10;
+                    ctx.fillRect((note.col * COL_WIDTH) + margin, y, COL_WIDTH - (margin*2), NOTE_HEIGHT);
+                    ctx.fillStyle = '#fff';
+                    ctx.fillRect((note.col * COL_WIDTH) + margin + 5, y + 5, COL_WIDTH - (margin*2) - 10, NOTE_HEIGHT - 10);
+                    
+                    ctx.shadowBlur = 0; // reseta para não bugar outros desenhos
+
+                    // Lógica de Acerto (Colisão)
+                    // Verifica se o jogador está tocando na coluna e se a nota está na área do hit
+                    if (keysPressed[note.col] && Math.abs(y - HIT_LINE_Y) < (NOTE_HEIGHT + 20)) {
+                        note.hit = true;
+                        score += 10;
+                        scoreDisplay.innerText = score;
+                        // Efeito visual rápido de acerto (piscar tela ou algo parecido pode ser adicionado aqui)
+                    }
+                }
+            });
+
+            requestAnimationFrame(gameLoop);
+        }
+
+        // Atualiza o tamanho do canvas se a pessoa girar o celular
+        window.addEventListener('resize', () => {
+            if(canvas.width !== window.innerWidth) {
+                canvas.width = window.innerWidth;
+                canvas.height = window.innerHeight;
+            }
+        });
+    </script>
+</body>
+          </html>
+                                                                              
