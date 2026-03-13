@@ -14,7 +14,7 @@
             --text-glow: 0 0 10px #bc13fe;
         }
 
-        * { margin: 0; padding: 0; box-sizing: border-box; font-family: 'Courier New', Courier, monospace; -webkit-tap-highlight-color: transparent; }
+        * { margin: 0; padding: 0; box-sizing: border-box; font-family: 'Courier New', Courier, monospace; -webkit-tap-highlight-color: transparent; user-select: none; }
 
         body { background-color: var(--bg-black); color: white; overflow: hidden; height: 100vh; touch-action: none; }
 
@@ -23,14 +23,14 @@
             position: absolute; width: 100%; height: 100%; 
             display: flex; flex-direction: column; align-items: center; justify-content: center;
             background: radial-gradient(circle at center, var(--purple-dark) 0%, var(--bg-black) 100%);
-            transition: opacity 0.5s ease;
+            transition: opacity 0.3s ease;
             z-index: 10;
         }
 
         .screen.hidden { opacity: 0; pointer-events: none; z-index: -1; }
 
         /* Menu */
-        .card { background: rgba(26, 0, 51, 0.7); padding: 30px; border-radius: 20px; border: 2px solid var(--purple-neon); width: 90%; max-width: 450px; box-shadow: var(--trail-glow); text-align: center; }
+        .card { background: rgba(26, 0, 51, 0.85); padding: 30px; border-radius: 20px; border: 2px solid var(--purple-neon); width: 90%; max-width: 450px; box-shadow: var(--trail-glow); text-align: center; z-index: 20;}
         h1 { font-size: 2.2rem; margin-bottom: 25px; text-shadow: var(--text-glow); color: white; }
         h2 { font-size: 1.5rem; margin-bottom: 15px; text-shadow: var(--text-glow); color: white;}
         p { margin-bottom: 15px; color: #ccc; }
@@ -38,37 +38,54 @@
         /* Jogo */
         #gameArea {
             position: relative; width: 100%; max-width: 400px; height: 100vh;
-            background: linear-gradient(to bottom, transparent, rgba(188, 19, 254, 0.1));
+            background: linear-gradient(to bottom, transparent, rgba(188, 19, 254, 0.15));
             display: flex; border-left: 1px solid #333; border-right: 1px solid #333;
-            margin: 0 auto;
+            margin: 0 auto; overflow: hidden;
         }
 
         .lane { flex: 1; border-right: 1px solid rgba(255,255,255,0.05); position: relative; }
+        .lane:last-child { border-right: none; }
         .lane-highlight { position: absolute; bottom: 0; width: 100%; height: 100%; background: linear-gradient(to top, var(--purple-neon), transparent); opacity: 0; pointer-events: none; transition: opacity 0.1s; z-index: 2; }
-        .lane.active-lane .lane-highlight { opacity: 0.5; }
+        .lane.active-lane .lane-highlight { opacity: 0.6; }
 
         /* Notas */
         .note { 
             position: absolute; width: 90%; left: 5%; height: 25px; 
             background: var(--purple-neon); border-radius: 5px; 
             box-shadow: var(--note-glow); z-index: 3;
+            border-bottom: 5px solid white; /* Indicador visual da base da nota */
         }
-        .note-long { height: 80px; } /* Nota longa simples */
-        .fake-note { background: #ff0044 !important; box-shadow: 0 0 20px #ff0044 !important; }
+        .note-long { height: 120px; border-bottom: 5px solid white; } 
+        .fake-note { background: #ff0044 !important; box-shadow: 0 0 20px #ff0044 !important; border-bottom: 5px solid #ffaaaa;}
         
         #hitLine { 
-            position: absolute; bottom: 100px; width: 100%; height: 6px; 
-            background: white; box-shadow: 0 0 20px white; z-index: 5;
+            position: absolute; bottom: 100px; width: 100%; height: 4px; 
+            background: white; box-shadow: 0 0 15px white; z-index: 5;
         }
+
+        /* Controles Base Mobile */
+        #mobileControls {
+            position: absolute; bottom: 0; width: 100%; max-width: 400px; height: 120px;
+            display: flex; z-index: 20; left: 50%; transform: translateX(-50%);
+        }
+        .touch-zone { flex: 1; height: 100%; }
 
         /* HUD */
         #hud { position: absolute; top: 15px; width: 100%; max-width: 400px; padding: 0 20px; display: flex; justify-content: space-between; z-index: 50; font-size: 1.1rem; pointer-events: none; margin: 0 auto; left:0; right:0;}
-        #accTxt { text-shadow: var(--text-glow); }
-        #comboCount { font-size: 2rem; color: var(--purple-neon); text-shadow: var(--trail-glow); }
+        #accTxt { text-shadow: var(--text-glow); color: white; font-weight: bold;}
+        #comboCount { font-size: 2rem; color: var(--purple-neon); text-shadow: var(--trail-glow); font-weight: bold;}
+        
         #celebration { 
-            position: absolute; top: 80px; width: 100%; text-align: center; 
-            font-size: 2.8rem; color: white; text-shadow: var(--trail-glow); 
-            display: none; animation: celebrationPop 0.8s ease; z-index: 60;
+            position: absolute; top: 15%; width: 100%; text-align: center; 
+            font-size: 3rem; color: white; text-shadow: var(--trail-glow); 
+            opacity: 0; transform: scale(0.5); z-index: 60; pointer-events: none;
+            font-weight: bold;
+        }
+
+        #countdown {
+            position: absolute; top: 40%; width: 100%; text-align: center;
+            font-size: 5rem; color: white; text-shadow: var(--trail-glow);
+            z-index: 100; font-weight: bold; opacity: 0; pointer-events: none;
         }
 
         /* Botões e Inputs */
@@ -81,20 +98,22 @@
         button:hover { background: var(--purple-neon); box-shadow: var(--trail-glow); color: black; }
         button:active { transform: scale(0.98); }
 
+        /* Checkbox */
+        .checkbox-container { display: flex; align-items: center; justify-content: center; gap: 10px; margin-top: 10px; color: #aaa; font-size: 0.9rem;}
+        .checkbox-container input { accent-color: var(--purple-neon); transform: scale(1.2); }
+
         /* Popups de Acerto */
-        #judgment { position: absolute; top: 45%; width: 100%; text-align: center; font-size: 2.5rem; font-weight: bold; pointer-events: none; z-index: 55; text-transform: uppercase; }
+        #judgment { position: absolute; top: 50%; width: 100%; text-align: center; font-size: 2.5rem; font-weight: bold; pointer-events: none; z-index: 55; text-transform: uppercase; opacity: 0; }
 
-        @keyframes celebrationPop { 0% { transform: scale(0.5); opacity: 0; } 70% { transform: scale(1.1); opacity: 1; } 100% { transform: scale(1); opacity: 1; } }
-        @keyframes judgmentFade { 0% { opacity: 1; transform: scale(1); } 80% { opacity: 1; } 100% { opacity: 0; transform: scale(0.8); } }
-
-        /* Tutorial e Feedback */
+        @keyframes popAnim { 0% { transform: scale(0.5); opacity: 0; } 20% { transform: scale(1.2); opacity: 1; } 80% { transform: scale(1); opacity: 1; } 100% { transform: scale(0.8); opacity: 0; } }
+        
         .modal-content { text-align: left; }
         .key-note { display: inline-block; width: 20px; height: 10px; border-radius: 2px; margin-right: 5px; }
         textarea { width: 100%; background: rgba(0,0,0,0.3); border: 1px solid #444; color: white; padding: 10px; margin: 10px 0; border-radius: 5px; resize: none; font-size: 0.9rem;}
         textarea:focus { border-color: var(--purple-neon); outline: none;}
 
         /* Resultado */
-        #gradeDisplay { font-size: 8rem; font-weight: bold; margin: 20px 0; text-shadow: var(--trail-glow); }
+        #gradeDisplay { font-size: 6rem; font-weight: bold; margin: 10px 0; text-shadow: var(--trail-glow); }
         .stat-line { font-size: 1rem; color: #aaa; margin-bottom: 5px; display: flex; justify-content: space-between;}
         .stat-line span { color: white; font-weight: bold;}
 
@@ -102,14 +121,9 @@
 </head>
 <body>
 
-    <div id="loadingScreen" class="screen">
-        <h1 style="text-shadow: var(--trail-glow);">NEON RHYTHM</h1>
-        <p>Carregando energias...</p>
-    </div>
-
-    <div id="menuScreen" class="screen hidden">
+    <div id="menuScreen" class="screen">
         <div class="card">
-            <h1>MENU</h1>
+            <h1>NEON RHYTHM</h1>
             <p>Selecione a Dificuldade (1-10)</p>
             <div style="display: flex; align-items: center; justify-content: space-between;">
                 <span style="color: #888">Fácil</span>
@@ -117,36 +131,41 @@
                 <span style="color: #888">Hardcore</span>
             </div>
             <input type="range" id="diffSlider" min="1" max="10" value="5">
-            <p id="diffDesc" style="color: #aaa; font-size: 0.8rem; height: 35px; margin-bottom: 20px;">Ritmo médio e poucas notas falsas.</p>
+            <p id="diffDesc" style="color: #aaa; font-size: 0.8rem; height: 35px; margin-bottom: 10px;">Ritmo médio e poucas notas falsas.</p>
             
-            <button onclick="showTutorial()">TUTORIAL</button>
+            <div class="checkbox-container">
+                <input type="checkbox" id="toggleCelebration" checked>
+                <label for="toggleCelebration">Ativar Comemorações de Combo</label>
+            </div>
+
             <button onclick="initGame()">INICIAR PARTIDA</button>
-            <button onclick="showFeedback()">FEEDBACK</button>
+            <button onclick="showScreen('tutorialScreen')">TUTORIAL</button>
+            <button onclick="showScreen('feedbackScreen')">FEEDBACK</button>
         </div>
     </div>
 
     <div id="tutorialScreen" class="screen hidden">
         <div class="card modal-content">
-            <h2>TUTORIAL</h2>
-            <p>Acompanhe o ritmo da música tocando nas notas quando elas cruzarem a linha branca na parte inferior.</p>
-            <p><strong>Controles PC:</strong> Teclas [D] [F] [J] [K]</p>
-            <p><strong>Controles Mobile:</strong> Toque nas pistas correspondentes.</p>
+            <h2 style="text-align: center;">TUTORIAL</h2>
+            <p>Toque nas notas quando a parte inferior delas cruzar a linha branca.</p>
+            <p><strong>PC:</strong> Teclas [D] [F] [J] [K]</p>
+            <p><strong>Mobile:</strong> Toque no fundo da tela nas pistas.</p>
             <div style="margin: 15px 0;">
-                <p><span class="key-note" style="background: var(--purple-neon); box-shadow: var(--note-glow);"></span>Nota Curta: Toque rápido.</p>
-                <p><span class="key-note note-long" style="background: var(--purple-neon); box-shadow: var(--note-glow);"></span>Nota Longa: Segure até o fim.</p>
-                <p><span class="key-note fake-note"></span>Nota Falsa: <strong>NÃO TOQUE!</strong></p>
+                <p><span class="key-note" style="background: var(--purple-neon); box-shadow: var(--note-glow);"></span>Nota Curta: Toque na hora certa.</p>
+                <p><span class="key-note note-long" style="background: var(--purple-neon); box-shadow: var(--note-glow);"></span>Nota Longa: Conta como nota normal nesta versão.</p>
+                <p><span class="key-note fake-note"></span>Nota Vermelha: <strong>NÃO TOQUE!</strong></p>
             </div>
-            <button onclick="closeModals()">ENTENDI</button>
+            <button onclick="showScreen('menuScreen')">ENTENDI</button>
         </div>
     </div>
 
     <div id="feedbackScreen" class="screen hidden">
         <div class="card">
             <h2>FEEDBACK</h2>
-            <p>Sua opinião vai direto para o dono do site!</p>
+            <p>Sua opinião vai direto para o desenvolvedor!</p>
             <textarea id="feedbackText" rows="5" placeholder="Digite sua mensagem aqui..."></textarea>
             <button onclick="sendFeedback()">ENVIAR FEEDBACK</button>
-            <button onclick="closeModals()" style="border-color: #555; color: #aaa; margin-top: 10px;">CANCELAR</button>
+            <button onclick="showScreen('menuScreen')" style="border-color: #555; color: #aaa; margin-top: 10px;">VOLTAR</button>
         </div>
     </div>
 
@@ -155,7 +174,9 @@
             <div><span id="accTxt">0.0000</span>%</div>
             <div id="comboCount">0</div>
         </div>
+        
         <div id="celebration">100 COMBO!</div>
+        <div id="countdown"></div>
         <div id="judgment"></div>
         
         <div id="gameArea">
@@ -165,13 +186,20 @@
             <div class="lane" id="lane2"><div class="lane-highlight"></div></div>
             <div class="lane" id="lane3"><div class="lane-highlight"></div></div>
         </div>
+
+        <div id="mobileControls">
+            <div class="touch-zone" data-lane="0"></div>
+            <div class="touch-zone" data-lane="1"></div>
+            <div class="touch-zone" data-lane="2"></div>
+            <div class="touch-zone" data-lane="3"></div>
+        </div>
     </div>
 
     <div id="resultScreen" class="screen hidden">
-        <div class="card">
+        <div class="card" style="padding: 20px;">
             <h2>RESULTADO</h2>
             <div id="gradeDisplay">S+</div>
-            <div style="width: 80%; margin: 0 auto 20px auto;">
+            <div style="width: 90%; margin: 0 auto 15px auto; text-align: left;">
                 <div class="stat-line">Precisão: <span id="finalAcc">0.0000%</span></div>
                 <div class="stat-line">Maior Combo: <span id="finalCombo">0</span></div>
                 <div style="border-top: 1px solid #444; margin: 10px 0;"></div>
@@ -181,8 +209,8 @@
                 <div class="stat-line" style="color: orange;">BAD: <span id="bCount">0</span></div>
                 <div class="stat-line" style="color: red;">MISS: <span id="mCount">0</span></div>
             </div>
-            <button onclick="resetGame()">JOGAR NOVAMENTE</button>
-            <button id="exportBtn" style="border-color: cyan; color: cyan;">EXPORTAR CLIPE (3-6s)</button>
+            <button onclick="showScreen('menuScreen')">MENU PRINCIPAL</button>
+            <button id="exportBtn" onclick="exportClip()" style="border-color: cyan; color: cyan;">EXPORTAR CLIPE (3-6s)</button>
         </div>
     </div>
 
@@ -191,128 +219,137 @@
     </audio>
 
     <script>
-        // Configurações e Estado do Jogo
+        // Variáveis de Estado
         let difficulty = 5;
         let isPlaying = false;
+        let allowInput = false;
         let noteCounter = 0;
         let notes = [];
-        let stats = { combo: 0, maxCombo: 0, perfect: 0, veryGood: 0, good: 0, bad: 0, miss: 0, totalProcessed: 0, points: 0, maxPossiblePoints: 0 };
-        const comboMilestones = [1, 5, 10, 25, 50, 75, 100, 250, 500, 750, 1000, 1500, 2000, 2500, 3000];
+        let animationFrameId;
+        let spawnIntervalId;
         
-        // Elementos DOM
-        const screens = {
-            loading: document.getElementById('loadingScreen'),
-            menu: document.getElementById('menuScreen'),
-            tutorial: document.getElementById('tutorialScreen'),
-            feedback: document.getElementById('feedbackScreen'),
-            game: document.getElementById('gameScreen'),
-            result: document.getElementById('resultScreen')
+        let stats = { 
+            combo: 0, maxCombo: 0, perfect: 0, veryGood: 0, good: 0, bad: 0, miss: 0, 
+            points: 0, maxPossiblePoints: 0 
         };
-        const audio = document.getElementById('bgMusic');
-        const judgmentEl = document.getElementById('judgment');
-        const comboEl = document.getElementById('comboCount');
-        const accEl = document.getElementById('accTxt');
-        const celebrationEl = document.getElementById('celebration');
-
-        // Mapeamento de Teclas PC
+        
+        const comboMilestones = [1, 5, 10, 25, 50, 75, 100, 250, 500, 750, 1000, 1500, 2000, 2500, 3000];
         const keyMap = { 'd': 0, 'f': 1, 'j': 2, 'k': 3 };
+        const totalNotesInTrack = 100; // Total de notas antes do fim do jogo
 
-        // Inicialização
-        window.onload = () => {
-            setTimeout(() => {
-                showScreen('menu');
-            }, 2000); // Tela de carregamento simbólica
+        // Elementos DOM
+        const ui = {
+            diffSlider: document.getElementById('diffSlider'),
+            diffLabel: document.getElementById('diffLabel'),
+            diffDesc: document.getElementById('diffDesc'),
+            toggleCel: document.getElementById('toggleCelebration'),
+            accTxt: document.getElementById('accTxt'),
+            comboCount: document.getElementById('comboCount'),
+            judgment: document.getElementById('judgment'),
+            celebration: document.getElementById('celebration'),
+            countdown: document.getElementById('countdown')
         };
 
         // Gerenciamento de Telas
-        function showScreen(screenName) {
-            Object.values(screens).forEach(s => s.classList.add('hidden'));
-            screens[screenName].classList.remove('hidden');
-        }
-
-        function closeModals() {
-            showScreen('menu');
+        function showScreen(screenId) {
+            document.querySelectorAll('.screen').forEach(s => s.classList.add('hidden'));
+            document.getElementById(screenId).classList.remove('hidden');
         }
 
         // Slider de Dificuldade
-        const slider = document.getElementById('diffSlider');
-        const diffLabel = document.getElementById('diffLabel');
-        const diffDesc = document.getElementById('diffDesc');
-        slider.oninput = function() {
+        ui.diffSlider.oninput = function() {
             difficulty = parseInt(this.value);
-            diffLabel.innerText = difficulty;
-            let desc = "";
-            if(difficulty <= 4) desc = "Tempo fácil, ritmo lento e sem notas falsas.";
-            else if(difficulty <= 7) desc = "Ritmo médio e algumas notas falsas.";
-            else desc = "Rápido! 35% de notas falsas aparecerão. Boa sorte!";
-            diffDesc.innerText = desc;
+            ui.diffLabel.innerText = difficulty;
+            if(difficulty <= 4) ui.diffDesc.innerText = "Tempo fácil, ritmo lento e sem notas falsas.";
+            else if(difficulty <= 7) ui.diffDesc.innerText = "Ritmo médio e algumas notas falsas.";
+            else ui.diffDesc.innerText = "Rápido! 35% de notas falsas aparecerão. Boa sorte!";
         };
 
-        // Funções de Menu
-        function showTutorial() { showScreen('tutorial'); }
-        function showFeedback() { showScreen('feedback'); }
         function sendFeedback() {
             const text = document.getElementById('feedbackText').value;
             if(text.trim()) {
-                alert("Obrigado! Seu feedback foi enviado para a caixa de entrada do dono.");
+                alert("Feedback enviado com sucesso para a caixa de entrada do desenvolvedor!");
                 document.getElementById('feedbackText').value = "";
-                closeModals();
-            } else {
-                alert("Por favor, digite uma mensagem.");
+                showScreen('menuScreen');
             }
         }
 
-        // Motor do Jogo
-        let spawnInterval;
-        let gameTicker;
-        const totalNotesInTrack = 80; // Duração simbólica da música
-
-        function initGame() {
-            showScreen('game');
-            resetStats();
-            isPlaying = true;
-            noteCounter = 0;
+        function resetStats() {
+            stats = { combo: 0, maxCombo: 0, perfect: 0, veryGood: 0, good: 0, bad: 0, miss: 0, points: 0, maxPossiblePoints: 0 };
+            ui.accTxt.innerText = "0.0000";
+            ui.comboCount.innerText = "0";
+            ui.judgment.style.opacity = "0";
+            notes.forEach(n => n.el.remove());
             notes = [];
-            audio.play().catch(()=>{}); // Inicia áudio silencioso
+            noteCounter = 0;
+        }
 
-            // Velocidade e Spawn baseados na dificuldade
-            let speed = 4 + (difficulty * 0.6);
-            let spawnRate = 1200 - (difficulty * 70);
+        // Início do Jogo
+        function initGame() {
+            showScreen('gameScreen');
+            resetStats();
+            allowInput = false;
+            isPlaying = true;
+            document.getElementById('bgMusic').play().catch(()=>{});
 
-            // Loop de criação de notas
-            spawnInterval = setInterval(() => {
-                if(!isPlaying || noteCounter >= totalNotesInTrack) {
-                    clearInterval(spawnInterval);
-                    if(noteCounter >= totalNotesInTrack) setTimeout(endGame, 3000); // Espera últimas notas caírem
+            // Contagem Regressiva
+            let count = 3;
+            ui.countdown.style.animation = 'none';
+            ui.countdown.style.opacity = '1';
+            
+            let countInterval = setInterval(() => {
+                if (count > 0) {
+                    ui.countdown.innerText = count;
+                    ui.countdown.style.animation = 'popAnim 1s ease';
+                    count--;
+                } else if (count === 0) {
+                    ui.countdown.innerText = "GO!";
+                    ui.countdown.style.animation = 'popAnim 1s ease';
+                    count--;
+                } else {
+                    clearInterval(countInterval);
+                    ui.countdown.style.opacity = '0';
+                    startGameEngine();
+                }
+            }, 1000);
+        }
+
+        function startGameEngine() {
+            allowInput = true;
+            let speed = 5 + (difficulty * 0.8);
+            let spawnRate = Math.max(300, 1000 - (difficulty * 70));
+
+            // Spawner de notas
+            spawnIntervalId = setInterval(() => {
+                if(!isPlaying) return;
+                if(noteCounter >= totalNotesInTrack) {
+                    clearInterval(spawnIntervalId);
+                    setTimeout(endGame, 3000); // Espera as últimas notas caírem
                     return;
                 }
                 
-                // Determina tipo de nota
                 let laneIdx = Math.floor(Math.random() * 4);
                 let type = 'short';
                 let isFake = false;
 
-                // Lógica de nota falsa (Difficulty 4+)
                 if(difficulty > 4) {
                     let fakeThreshold = difficulty > 7 ? 0.35 : 0.15;
                     if(Math.random() < fakeThreshold) isFake = true;
                 }
 
-                // Lógica de nota longa (não fake)
                 if(!isFake && Math.random() < 0.15) type = 'long';
 
                 createNote(laneIdx, speed, type, isFake);
                 noteCounter++;
             }, spawnRate);
 
-            // Loop de atualização da posição das notas (60 FPS simbólico)
-            gameTicker = setInterval(() => {
-                if(!isPlaying) {
-                    clearInterval(gameTicker);
-                    return;
-                }
+            // Loop de renderização fluída
+            function renderLoop() {
+                if(!isPlaying) return;
                 updateNotes();
-            }, 1000/60);
+                animationFrameId = requestAnimationFrame(renderLoop);
+            }
+            renderLoop();
         }
 
         function createNote(laneIdx, speed, type, isFake) {
@@ -322,36 +359,41 @@
             if(type === 'long') noteEl.classList.add('note-long');
             if(isFake) noteEl.classList.add('fake-note');
             
-            noteEl.style.top = '-100px'; // Spawn fora da tela
             lane.appendChild(noteEl);
 
             notes.push({
                 el: noteEl,
                 lane: laneIdx,
-                y: -100,
+                y: -150, // Nasce bem acima da tela
                 speed: speed,
                 type: type,
                 isFake: isFake,
-                processed: false
+                processed: false,
+                height: type === 'long' ? 120 : 25
             });
-            stats.maxPossiblePoints += isFake ? 0 : 1; // Notas fake não contam ponto positivo
         }
 
         function updateNotes() {
+            const hitLineY = window.innerHeight - 100;
+
             for (let i = notes.length - 1; i >= 0; i--) {
                 let note = notes[i];
                 note.y += note.speed;
                 note.el.style.top = note.y + 'px';
 
-                // Miss automático se passar muito da linha
-                if (!note.processed && note.y > window.innerHeight - 50) {
+                // A base da nota é y + height
+                let noteBottom = note.y + note.height;
+
+                // Passou do limite aceitável de hit (Miss automático)
+                if (!note.processed && noteBottom > hitLineY + 60) {
                     if (!note.isFake) {
                         registerHit('MISS');
                     }
                     note.processed = true;
+                    note.el.style.opacity = '0.3';
                 }
 
-                // Remove nota se sair totalmente da tela
+                // Limpeza de notas fora da tela
                 if (note.y > window.innerHeight) {
                     note.el.remove();
                     notes.splice(i, 1);
@@ -359,25 +401,26 @@
             }
         }
 
-        // Lógica de Input e Pontuação
+        // Inputs
         function handleInput(laneIdx) {
-            if(!isPlaying) return;
+            if(!allowInput || !isPlaying) return;
 
-            // Feedback visual na pista
+            // Efeito visual na pista
             const lane = document.getElementById('lane' + laneIdx);
             lane.classList.add('active-lane');
             setTimeout(() => lane.classList.remove('active-lane'), 100);
 
-            // Encontra a nota mais próxima da hitline na pista
+            const hitLineY = window.innerHeight - 100;
             let closestNote = null;
             let minDist = Infinity;
 
+            // Procura a nota não processada mais próxima da linha de hit nesta pista
             for(let note of notes) {
                 if(note.lane === laneIdx && !note.processed) {
-                    let noteCenter = note.type === 'long' ? note.y + 40 : note.y + 12.5;
-                    let hitLineTop = window.innerHeight - 100;
-                    let dist = Math.abs(noteCenter - hitLineTop);
-                    if(dist < minDist && dist < 100) { // Janela de hit de 100px
+                    let noteBottom = note.y + note.height;
+                    let dist = Math.abs(noteBottom - hitLineY);
+                    
+                    if(dist < minDist && dist < 120) { // Janela de clique
                         minDist = dist;
                         closestNote = note;
                     }
@@ -386,47 +429,7 @@
 
             if(closestNote) {
                 closestNote.processed = true;
-                closestNote.el.style.opacity = '0.3'; // Feedback visual na nota
+                closestNote.el.style.opacity = '0.3';
 
                 if(closestNote.isFake) {
-                    registerHit('MISS'); // Tocou em nota falsa
-                } else {
-                    // Avaliação de precisão baseada na distância
-                    if(minDist < 20) registerHit('PERFECT');
-                    else if(minDist < 40) registerHit('VERY GOOD');
-                    else if(minDist < 60) registerHit('GOOD');
-                    else registerHit('BAD');
-                }
-            }
-        }
-
-        function registerHit(judgment) {
-            stats.totalProcessed++;
-            judgmentEl.innerText = judgment;
-            judgmentEl.style.animation = 'none';
-            void judgmentEl.offsetWidth; // Trigger reflow
-            judgmentEl.style.animation = 'judgmentFade 0.5s ease forwards';
-
-            let points = 0;
-            judgmentEl.style.color = 'white';
-
-            switch(judgment) {
-                case 'PERFECT': stats.perfect++; points = 1; stats.combo++; judgmentEl.style.color = 'cyan'; break;
-                case 'VERY GOOD': stats.veryGood++; points = 0.8; stats.combo++; judgmentEl.style.color = 'lime'; break;
-                case 'GOOD': stats.good++; points = 0.5; stats.combo++; judgmentEl.style.color = 'yellow'; break;
-                case 'BAD': stats.bad++; points = 0.2; stats.combo = 0; judgmentEl.style.color = 'orange'; break;
-                case 'MISS': stats.miss++; points = 0; stats.combo = 0; judgmentEl.style.color = 'red'; break;
-            }
-
-            stats.points += points;
-            updateHUD();
-            if(stats.combo > stats.maxCombo) stats.maxCombo = stats.combo;
-            checkCelebration();
-        }
-
-        function updateHUD() {
-            // Pontuação ultra-precisa 0.0000%
-            let acc = stats.maxPossiblePoints === 0 ? 0 : (stats.points / stats.maxPossiblePoints) * 100;
-            if(acc > 100) acc = 100; // Proteção contra fakes erradas aumentando max points
-            accEl.innerText = acc.toFixed(4);
-           
+                    registerHit('MISS', true); 
