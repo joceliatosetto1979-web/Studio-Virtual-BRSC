@@ -2,530 +2,523 @@
 <html lang="pt-BR">
 <head>
     <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-    <title>🎹 RITMO VIOLETA – Piano 4 Teclas</title>
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no">
+    <title>Piano Mágico | Gravação de Sons e Efeitos</title>
     <style>
         * {
-            box-sizing: border-box;
-            margin: 0;
-            padding: 0;
             user-select: none;
-            font-family: 'Segoe UI', 'Poppins', system-ui, sans-serif;
+            -webkit-tap-highlight-color: transparent;
         }
 
         body {
+            background: linear-gradient(145deg, #1a2a3a 0%, #0f1a24 100%);
             min-height: 100vh;
-            background: radial-gradient(circle at top, #1a0b2e, #0a0615);
             display: flex;
             justify-content: center;
             align-items: center;
-            padding: 8px;
+            font-family: 'Segoe UI', 'Poppins', system-ui, -apple-system, sans-serif;
+            margin: 0;
+            padding: 20px;
         }
 
-        /* Estrutura de APP - tela vertical fixa */
-        .app-container {
-            width: 100%;
-            max-width: 420px;
-            height: 780px;
-            background: #120b1f;
-            border-radius: 48px 48px 32px 32px;
-            box-shadow: 0 30px 40px rgba(0,0,0,0.8), 0 0 0 2px #6b3f9f inset, 0 0 15px #a55de0;
-            overflow: hidden;
-            display: flex;
-            flex-direction: column;
-            position: relative;
-            border: 1px solid #8a4fcf;
-        }
-
-        /* loading overlay */
-        .loading-screen {
-            position: absolute;
-            inset: 0;
-            background: #0f0820;
-            z-index: 300;
-            display: flex;
-            flex-direction: column;
-            justify-content: center;
-            align-items: center;
-            gap: 20px;
-            transition: opacity 0.4s ease;
+        /* Container principal */
+        .piano-container {
+            background: rgba(0, 0, 0, 0.4);
+            border-radius: 48px;
+            padding: 24px 20px 30px 20px;
             backdrop-filter: blur(2px);
+            box-shadow: 0 25px 45px rgba(0,0,0,0.4), inset 0 1px 1px rgba(255,255,255,0.1);
         }
-        .loading-screen.hide {
-            opacity: 0;
-            pointer-events: none;
+
+        /* Área do teclado rolável horizontalmente */
+        .keyboard-wrapper {
+            overflow-x: auto;
+            overflow-y: hidden;
+            padding-bottom: 12px;
+            cursor: grab;
+            scroll-behavior: smooth;
+            border-radius: 28px;
         }
-        .loader {
-            width: 80px;
-            height: 80px;
-            border: 8px solid #2e1a47;
-            border-top: 8px solid #b77ef0;
-            border-radius: 50%;
-            animation: spin 1.2s infinite cubic-bezier(0.6, 0.1, 0.4, 0.9);
-            box-shadow: 0 0 20px #b77ef0;
+        .keyboard-wrapper:active {
+            cursor: grabbing;
         }
-        @keyframes spin { 0% { transform: rotate(0); } 100% { transform: rotate(360deg); } }
-        .loading-text {
-            color: #dec3ff;
+        .keyboard {
+            display: flex;
+            flex-direction: row;
+            background: #0b1219;
+            border-radius: 24px;
+            padding: 16px 12px;
+            gap: 2px;
+            min-width: max-content;
+            box-shadow: inset 0 2px 8px rgba(0,0,0,0.6), 0 8px 18px rgba(0,0,0,0.3);
+        }
+
+        /* Estilo das teclas brancas */
+        .white-key {
+            width: 70px;
+            height: 220px;
+            background: linear-gradient(145deg, #fef9e8, #fff5e0);
+            border-radius: 0 0 16px 16px;
+            border: 1px solid #ddd2b0;
+            box-shadow: 0 4px 8px rgba(0,0,0,0.2), inset 0 1px 0 #ffffffcc;
+            cursor: pointer;
+            transition: all 0.05s linear;
+            display: flex;
+            align-items: flex-end;
+            justify-content: center;
+            padding-bottom: 18px;
             font-weight: 600;
-            letter-spacing: 2px;
-            text-shadow: 0 0 8px #a069d6;
+            color: #2c3e44;
+            font-size: 1rem;
+            text-transform: uppercase;
+            position: relative;
+            z-index: 1;
         }
 
-        /* Tela principal */
-        .main-ui {
-            flex: 1;
-            display: flex;
-            flex-direction: column;
-            overflow-y: auto;
-            padding: 16px 14px 10px 14px;
-            gap: 12px;
-            background: #0c0819;
-        }
-
-        /* CABEÇALHO + INFOS */
-        .top-bar {
-            display: flex;
-            justify-content: space-between;
-            align-items: center;
-            background: #1e1233;
-            padding: 10px 16px;
-            border-radius: 60px;
-            border: 1px solid #7a48b3;
-            box-shadow: 0 5px 0 #3d2560, 0 8px 16px black;
-        }
-        .percent-box {
-            background: #0d0620;
-            color: #e6d0ff;
-            font-weight: 800;
-            font-size: 1.5rem;
-            padding: 6px 14px;
-            border-radius: 40px;
-            letter-spacing: 1px;
-            text-shadow: 0 0 12px #b273ff;
-            border: 1px solid #ad6eff;
-        }
-        .combo-box {
-            background: #2b1942;
-            color: #f2dcff;
-            font-weight: bold;
-            font-size: 1.3rem;
-            padding: 6px 18px;
-            border-radius: 30px;
-            border: 1px solid #bf92ff;
-            box-shadow: inset 0 -3px 0 #4f2e7a;
-        }
-        .comemoration-toggle {
-            background: #392a55;
-            border: none;
-            color: white;
-            width: 40px;
-            height: 40px;
-            border-radius: 30px;
-            font-size: 1.4rem;
-            display: flex;
-            align-items: center;
-            justify-content: center;
+        /* Teclas pretas */
+        .black-key {
+            width: 42px;
+            height: 135px;
+            background: linear-gradient(145deg, #1e272e, #0a0f14);
+            margin-left: -21px;
+            margin-right: -21px;
+            border-radius: 0 0 12px 12px;
+            z-index: 2;
+            box-shadow: 0 6px 10px rgba(0,0,0,0.5), inset 0 1px 1px rgba(255,255,255,0.2);
             cursor: pointer;
-            border: 1px solid #b175ff;
-            box-shadow: 0 0 8px violet;
-        }
-
-        /* área das notas (simulação) */
-        .track-area {
-            background: #0f0522;
-            border-radius: 40px 40px 16px 16px;
-            padding: 12px 6px;
+            transition: all 0.05s linear;
             display: flex;
-            gap: 8px;
+            align-items: flex-end;
             justify-content: center;
-            border: 2px solid #6b399b;
-            box-shadow: inset 0 0 30px #210e38, 0 10px 20px black;
-            flex: 1;
-            min-height: 200px;
-            position: relative;
-        }
-        .lane {
-            flex: 1;
-            background: #180b29;
-            border-radius: 40px 40px 12px 12px;
-            border-bottom: 8px solid #3d1d63;
-            position: relative;
-            overflow: hidden;
-            box-shadow: inset 0 -10px 8px #0a0318, 0 0 0 2px #a35eff;
-        }
-        .hit-area {
-            position: absolute;
-            bottom: 0;
-            left: 0;
-            width: 100%;
-            height: 32px;
-            background: rgba(170, 90, 255, 0.25);
-            border-top: 3px solid #c58aff;
-            box-shadow: 0 -8px 20px #b14eff;
-            backdrop-filter: blur(1px);
-        }
-        .fake-note, .long-note, .short-note {
-            position: absolute;
-            width: 90%;
-            left: 5%;
-            background: linear-gradient(145deg, #cb9eff, #9a4dff);
-            border-radius: 20px 20px 4px 4px;
-            box-shadow: 0 0 20px #d29eff, 0 4px 0 #491d86;
-            border: 1px solid white;
-        }
-        .fake-note { background: #5a2d8a; opacity: 0.8; box-shadow: 0 0 10px red; }
-        .long-note { height: 80px; background: linear-gradient(145deg, #b77ef0, #6b32b0); }
-
-        /* teclado */
-        .piano-keys {
-            display: flex;
-            gap: 8px;
-            padding: 12px 4px;
-            background: #1b1130;
-            border-radius: 60px 60px 30px 30px;
-            border: 2px solid #9b62db;
-            box-shadow: 0 -3px 0 #321f4a, 0 15px 20px black;
-        }
-        .key {
-            flex: 1;
-            background: #d7b9ff;
-            height: 130px;
-            border-radius: 40px 40px 20px 20px;
-            box-shadow: 0 10px 0 #5f2e97, 0 8px 20px #c78eff;
-            transition: 0.06s linear;
-            cursor: pointer;
-            border-bottom: 6px solid white;
-            position: relative;
-        }
-        .key.pressed {
-            background: #f2e2ff;
-            transform: translateY(8px);
-            box-shadow: 0 2px 0 #6f42b3, 0 0 40px #cb9eff;
-        }
-        .key::after {
-            content: '';
-            position: absolute;
-            bottom: 0;
-            left: 0;
-            width: 100%;
-            height: 30%;
-            background: rgba(128, 0, 255, 0.2);
-            border-radius: 0 0 20px 20px;
-            pointer-events: none;
+            padding-bottom: 18px;
+            color: #ecd9b4;
+            font-size: 0.7rem;
+            font-weight: 500;
         }
 
-        /* painel dificuldade */
-        .difficulty-panel {
-            background: #1d1135;
-            border-radius: 80px;
-            padding: 8px 18px;
-            display: flex;
-            align-items: center;
-            justify-content: space-between;
-            border: 1px solid #bc86ff;
+        .white-key:active, .black-key:active, .playing {
+            transform: translateY(4px);
+            filter: brightness(0.94);
+            transition: 0.02s;
         }
-        .difficulty-panel input {
-            width: 80px;
-            background: #0f0423;
-            border: 2px solid #b27eff;
-            color: #f3dbff;
-            font-size: 1.7rem;
-            text-align: center;
-            border-radius: 40px;
-            padding: 4px 0;
-            font-weight: bold;
-        }
-        .difficulty-panel label { color: #d9b9ff; font-weight: 600; }
 
-        /* botoes */
-        .action-buttons {
+        /* Painel de controle */
+        .control-panel {
             display: flex;
             flex-wrap: wrap;
-            gap: 10px;
             justify-content: center;
+            gap: 15px;
+            margin-top: 28px;
+            margin-bottom: 15px;
+            align-items: center;
         }
-        .btn {
-            background: #2f1d4a;
+
+        button, .mode-toggle {
+            background: #2c3e2f;
             border: none;
-            border-bottom: 5px solid #6f3faf;
-            padding: 12px 18px;
+            padding: 10px 20px;
             border-radius: 60px;
-            font-weight: 700;
-            color: #eeddff;
-            font-size: 0.9rem;
-            letter-spacing: 0.5px;
-            flex: 1 0 auto;
-            box-shadow: 0 5px 0 #2b1545, 0 8px 16px black;
-            transition: 0.07s;
-            cursor: pointer;
-        }
-        .btn:active { transform: translateY(5px); border-bottom-width: 2px; }
-
-        .comemoration-pop {
-            background: #4d2b81;
+            font-weight: bold;
+            font-size: 1rem;
             color: white;
-            padding: 12px 28px;
-            border-radius: 60px;
-            font-size: 2.2rem;
-            font-weight: 900;
-            position: absolute;
-            top: 20%;
-            left: 50%;
-            transform: translateX(-50%);
-            z-index: 200;
-            border: 3px solid #f2c8ff;
-            box-shadow: 0 0 60px #e2a2ff;
-            text-shadow: 3px 3px 0 #3c1b60;
-            white-space: nowrap;
-            pointer-events: none;
-            transition: opacity 0.2s;
+            cursor: pointer;
+            backdrop-filter: blur(4px);
+            background: rgba(30, 40, 45, 0.9);
+            box-shadow: 0 5px 12px rgba(0,0,0,0.3);
+            transition: 0.1s ease;
+            font-family: inherit;
+            border: 1px solid rgba(255,215,150,0.5);
         }
-        .hidden { display: none; }
+        button:active {
+            transform: scale(0.96);
+        }
+        .record-btn {
+            background: #aa2e4e;
+            box-shadow: 0 0 6px #ff6680;
+        }
+        .record-btn.recording {
+            background: #e34d6e;
+            animation: pulseRed 1s infinite;
+            box-shadow: 0 0 14px #ff3366;
+        }
+        @keyframes pulseRed {
+            0% { opacity: 1; background: #e34d6e;}
+            50% { opacity: 0.8; background: #ff4d6d;}
+            100% { opacity: 1; background: #e34d6e;}
+        }
 
-        .score-screen {
-            background: #1b0f2d;
-            border-radius: 48px;
-            padding: 20px;
-            border: 3px solid #ad5dff;
-            box-shadow: inset 0 0 30px #1a072e;
-            margin: 10px 0;
-            color: #f0d9ff;
+        .mode-toggle {
+            background: #2c5a6e;
+            font-weight: bold;
+            letter-spacing: 1px;
         }
-        .grade { font-size: 2rem; font-weight: 900; color: #ffd966; text-align: center; }
+        .mode-toggle.sample-mode {
+            background: #9b4b6e;
+            box-shadow: 0 0 8px #ffa987;
+        }
+
+        .slider-container {
+            background: rgba(0,0,0,0.6);
+            border-radius: 40px;
+            padding: 6px 18px;
+            display: flex;
+            align-items: center;
+            gap: 14px;
+            backdrop-filter: blur(4px);
+        }
+        .slider-container label {
+            color: #f3e6c2;
+            font-weight: 500;
+        }
+        input[type="range"] {
+            width: 160px;
+            height: 5px;
+            -webkit-appearance: none;
+            background: #d4c9a5;
+            border-radius: 5px;
+            outline: none;
+        }
+        input[type="range"]:focus {
+            outline: none;
+        }
+        input[type="range"]::-webkit-slider-thumb {
+            -webkit-appearance: none;
+            width: 18px;
+            height: 18px;
+            border-radius: 50%;
+            background: #ffcf7a;
+            cursor: pointer;
+            box-shadow: 0 1px 5px black;
+        }
+        .info-status {
+            background: #00000066;
+            padding: 8px 16px;
+            border-radius: 40px;
+            font-size: 0.8rem;
+            color: #f5e5c0;
+            font-weight: 500;
+            text-align: center;
+        }
+        .sample-wave {
+            background: #1a262e;
+            border-radius: 32px;
+            margin-top: 12px;
+            padding: 8px 12px;
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            flex-wrap: wrap;
+            gap: 8px;
+        }
+        .badge {
+            background: #2b3b2b;
+            border-radius: 30px;
+            padding: 4px 12px;
+            font-size: 0.75rem;
+            color: #ffeaac;
+        }
+        footer {
+            text-align: center;
+            margin-top: 15px;
+            font-size: 0.7rem;
+            color: #adad9e;
+        }
+        @media (max-width: 700px) {
+            .white-key { width: 55px; height: 180px; font-size: 0.7rem;}
+            .black-key { width: 36px; height: 110px; margin-left: -18px; margin-right: -18px;}
+            button { padding: 6px 14px; font-size: 0.8rem;}
+        }
     </style>
 </head>
 <body>
-<div class="app-container" id="appContainer">
+<div>
+    <div class="piano-container">
+        <div class="keyboard-wrapper" id="scrollWrapper">
+            <div class="keyboard" id="pianoKeyboard">
+                <!-- Teclas serão geradas via JS -->
+            </div>
+        </div>
 
-    <!-- Tela de carregamento -->
-    <div class="loading-screen" id="loadingScreen">
-        <div class="loader"></div>
-        <div class="loading-text">CARREGANDO PARTITURA</div>
-        <div class="loading-text" style="font-size: 1rem;">SINCRONIZANDO · 4 TECLAS</div>
+        <div class="control-panel">
+            <button id="recordBtn" class="record-btn">🎙️ Gravar Som</button>
+            <button id="stopRecordBtn" class="record-btn">⏹️ Parar</button>
+            <button id="playSampleBtn">🔊 Tocar Sample Gravado</button>
+            <div id="modeToggle" class="mode-toggle">🎛️ Modo: Piano Normal</div>
+        </div>
+
+        <div class="slider-container">
+            <label>🎚️ Faixa / Ganho do Sample:</label>
+            <input type="range" id="sampleGainSlider" min="0" max="2" step="0.01" value="0.9">
+            <span id="gainValue" class="badge">0.90x</span>
+        </div>
+
+        <div class="sample-wave">
+            <span class="badge" id="sampleStatus">📼 Nenhum sample gravado</span>
+            <span class="badge" id="durationInfo">⏱️ Duração: -- s</span>
+            <span class="badge" id="modeIndicator">🎹 Piano clássico</span>
+        </div>
+        <footer>✨ Role horizontalmente | Grave qualquer som → toque no piano com o sample | Ajuste volume do sample</footer>
     </div>
-
-    <!-- UI principal -->
-    <div class="main-ui" id="mainUI">
-
-        <div class="top-bar">
-            <span class="percent-box" id="percentDisplay">0.0000%</span>
-            <span class="combo-box" id="comboDisplay">0</span>
-            <button class="comemoration-toggle" id="toggleCelebration" title="desativar comemoração">🎉</button>
-        </div>
-
-        <!-- área onde as notas caem (visual) -->
-        <div class="track-area" id="trackArea">
-            <div class="lane" id="lane0"><div class="hit-area"></div></div>
-            <div class="lane" id="lane1"><div class="hit-area"></div></div>
-            <div class="lane" id="lane2"><div class="hit-area"></div></div>
-            <div class="lane" id="lane3"><div class="hit-area"></div></div>
-        </div>
-
-        <!-- teclas piano -->
-        <div class="piano-keys" id="pianoKeys">
-            <div class="key" data-key="0" id="key0"></div>
-            <div class="key" data-key="1" id="key1"></div>
-            <div class="key" data-key="2" id="key2"></div>
-            <div class="key" data-key="3" id="key3"></div>
-        </div>
-
-        <!-- painel dificuldade e controles -->
-        <div class="difficulty-panel">
-            <label>🔥 NÍVEL <input type="number" id="difficultySlider" min="1" max="10" value="1" step="1"></label>
-            <span style="color:#bb9bff;" id="difficultyDesc">fácil</span>
-        </div>
-
-        <div class="action-buttons">
-            <button class="btn" id="startGameBtn">▶ INICIAR</button>
-            <button class="btn" id="exportAudioBtn">📤 EXPORTAR ÁUDIO</button>
-            <button class="btn" id="tutorialBtn">❓ TUTORIAL</button>
-            <button class="btn" id="feedbackBtn">💬 FEEDBACK</button>
-            <button class="btn" id="createOwnBtn">🎼 CRIAR RITMO</button>
-            <button class="btn" id="playAgainBtn">🔄 TENTAR NOVAMENTE</button>
-        </div>
-
-        <!-- área de resultados pós-jogo -->
-        <div class="score-screen" id="resultScreen">
-            <div id="gradeResult" class="grade">-</div>
-            <div>ACERTO: <span id="finalPercent">0.0000%</span></div>
-            <div>MAIOR COMBO: <span id="maxCombo">0</span></div>
-            <div>⭐ PERFECT: <span id="perfectCount">0</span>  VERY GOOD: <span id="verygoodCount">0</span> GOOD: <span id="goodCount">0</span></div>
-            <div>⚡ BAD: <span id="badCount">0</span>  MISS: <span id="missCount">0</span></div>
-            <div style="font-size:0.8rem; color:#b380ff;">notas longas/falsas simuladas</div>
-        </div>
-    </div>
-
-    <!-- comemoração flutuante -->
-    <div id="celebrationMessage" class="comemoration-pop hidden">🔥 100 COMBO</div>
 </div>
 
 <script>
-    (function() {
-        // ---- config ----
-        const LANES = 4;
-        let loadingScreen = document.getElementById('loadingScreen');
-        let mainUI = document.getElementById('mainUI');
-        let percentSpan = document.getElementById('percentDisplay');
-        let comboSpan = document.getElementById('comboDisplay');
-        let celebrationDiv = document.getElementById('celebrationMessage');
-        let toggleCelebBtn = document.getElementById('toggleCelebration');
-        let difficultyInput = document.getElementById('difficultySlider');
-        let difficultyDesc = document.getElementById('difficultyDesc');
-        let resultScreen = document.getElementById('resultScreen');
-        // elementos resultados
-        let gradeSpan = document.getElementById('gradeResult');
-        let finalPercent = document.getElementById('finalPercent');
-        let maxComboSpan = document.getElementById('maxCombo');
-        let perfectSpan = document.getElementById('perfectCount');
-        let verygoodSpan = document.getElementById('verygoodCount');
-        let goodSpan = document.getElementById('goodCount');
-        let badSpan = document.getElementById('badCount');
-        let missSpan = document.getElementById('missCount');
+    // --------------------------------------------------------------
+    // 1. Notas musicais (12 tons) + Mapeamento visual
+    // --------------------------------------------------------------
+    const NOTES = [
+        { name: "C",  freq: 261.63, type: "white" },  // Dó4
+        { name: "C#", freq: 277.18, type: "black" },
+        { name: "D",  freq: 293.66, type: "white" },
+        { name: "D#", freq: 311.13, type: "black" },
+        { name: "E",  freq: 329.63, type: "white" },
+        { name: "F",  freq: 349.23, type: "white" },
+        { name: "F#", freq: 369.99, type: "black" },
+        { name: "G",  freq: 392.00, type: "white" },
+        { name: "G#", freq: 415.30, type: "black" },
+        { name: "A",  freq: 440.00, type: "white" },
+        { name: "A#", freq: 466.16, type: "black" },
+        { name: "B",  freq: 493.88, type: "white" }
+    ];
 
-        // estado do jogo
-        let gameActive = false;
-        let combo = 0;
-        let maxComboValue = 0;
-        let totalNotes = 0;
-        let hitScore = 0;       // soma para percentual (perfect = 1, verygood=0.8, good=0.6, bad=0.2, miss=0)
-        let perfect = 0, verygood = 0, good = 0, bad = 0, miss = 0;
-        let celebrationEnabled = true;
-        let currentComboMilestone = 0;
-
-        // funções de atualização de interface
-        function updatePercent() {
-            if (totalNotes === 0) {
-                percentSpan.innerText = '0.0000%';
-                return;
-            }
-            let perc = (hitScore / totalNotes) * 100;
-            percentSpan.innerText = perc.toFixed(4) + '%';
+    // Expandir 3 oitavas para ter boa rolagem (C3 até B5)
+    const OCTAVES = 3;
+    const START_OCTAVE = 3; // Dó3
+    let fullKeyboard = [];
+    for (let oct = 0; oct < OCTAVES; oct++) {
+        for (let i = 0; i < NOTES.length; i++) {
+            let note = NOTES[i];
+            let octaveReal = START_OCTAVE + oct;
+            let freq = note.freq * Math.pow(2, oct);
+            let displayName = note.name + octaveReal;
+            fullKeyboard.push({
+                id: `${note.name}${octaveReal}`,
+                name: note.name,
+                freq: freq,
+                type: note.type,
+                displayName: displayName
+            });
         }
+    }
 
-        function updateCombo() {
-            comboSpan.innerText = combo;
-            if (combo > maxComboValue) maxComboValue = combo;
-            // milestones
-            if (!celebrationEnabled) return;
-            const milestones = [1,5,10,25,50,75,100,250,500,750,1000,1500,2000,2500,3000];
-            if (milestones.includes(combo) && combo > currentComboMilestone) {
-                currentComboMilestone = combo;
-                celebrationDiv.innerText = `🎊 ${combo} COMBO 🎊`;
-                celebrationDiv.classList.remove('hidden');
-                setTimeout(() => celebrationDiv.classList.add('hidden'), 1200);
-            }
+    // --------------------------------------------------------------
+    // 2. Áudio Web Audio API
+    // --------------------------------------------------------------
+    let audioCtx = null;
+    let masterGain = null;
+    let sampleBuffer = null;       // armazena AudioBuffer do sample gravado
+    let isRecording = false;
+    let mediaRecorder = null;
+    let recordedChunks = [];
+    let recordedBlob = null;
+    let recordedAudioUrl = null;
+    let sampleModeActive = false;   // true = tocar sample nas teclas, false = piano normal
+
+    // Controle de ganho do sample
+    let sampleGainValue = 0.9;
+    const gainSlider = document.getElementById('sampleGainSlider');
+    const gainSpan = document.getElementById('gainValue');
+
+    // UI Elements
+    const recordBtn = document.getElementById('recordBtn');
+    const stopRecordBtn = document.getElementById('stopRecordBtn');
+    const playSampleBtn = document.getElementById('playSampleBtn');
+    const modeToggleBtn = document.getElementById('modeToggle');
+    const sampleStatusSpan = document.getElementById('sampleStatus');
+    const durationInfoSpan = document.getElementById('durationInfo');
+    const modeIndicatorSpan = document.getElementById('modeIndicator');
+    const keyboardDiv = document.getElementById('pianoKeyboard');
+    const scrollWrapper = document.getElementById('scrollWrapper');
+
+    // Inicializar áudio (user interaction required, mas ativamos no primeiro toque)
+    function initAudio() {
+        if (audioCtx) return;
+        audioCtx = new (window.AudioContext || window.webkitAudioContext)();
+        masterGain = audioCtx.createGain();
+        masterGain.gain.value = 0.35;  // volume global do piano
+        masterGain.connect(audioCtx.destination);
+    }
+
+    // Tocar nota com oscilador (piano sintetizado simples, mas bonito)
+    function playNormalNote(freq, duration = 1.2) {
+        if (!audioCtx) initAudio();
+        if (audioCtx.state === 'suspended') {
+            audioCtx.resume();
         }
+        const now = audioCtx.currentTime;
+        const osc = audioCtx.createOscillator();
+        const gainNode = audioCtx.createGain();
+        osc.type = 'triangle'; // som suave
+        osc.frequency.value = freq;
+        gainNode.gain.value = 0.28;
+        osc.connect(gainNode);
+        gainNode.connect(masterGain);
+        osc.start();
+        gainNode.gain.exponentialRampToValueAtTime(0.0001, now + duration);
+        osc.stop(now + duration);
+        // harmônico extra para simular piano
+        const osc2 = audioCtx.createOscillator();
+        const gain2 = audioCtx.createGain();
+        osc2.type = 'sine';
+        osc2.frequency.value = freq * 2.01;
+        gain2.gain.value = 0.08;
+        osc2.connect(gain2);
+        gain2.connect(masterGain);
+        osc2.start();
+        gain2.gain.exponentialRampToValueAtTime(0.0001, now + duration * 0.9);
+        osc2.stop(now + duration);
+    }
 
-        // simulação de toque nas teclas
-        function pressKey(index) {
-            if (!gameActive) return;
-            // simulando julgamento aleatório para demonstração
-            let rand = Math.random();
-            let judgement = '';
-            if (rand < 0.2) { miss++; judgement = 'MISS'; hitScore += 0; combo = 0; }
-            else if (rand < 0.4) { bad++; judgement = 'BAD'; hitScore += 0.2; combo = 0; }
-            else if (rand < 0.6) { good++; judgement = 'GOOD'; hitScore += 0.6; combo += 1; }
-            else if (rand < 0.8) { verygood++; judgement = 'VERY GOOD'; hitScore += 0.8; combo += 1; }
-            else { perfect++; judgement = 'PERFECT'; hitScore += 1; combo += 1; }
-
-            totalNotes++; 
-            updatePercent();
-            updateCombo();
-
-            // feedback visual na tecla
-            let key = document.getElementById('key'+index);
-            key.classList.add('pressed');
-            setTimeout(() => key.classList.remove('pressed'), 120);
-
-            // mostrar julgamento flutuante (opcional)
+    // Tocar sample (buffer gravado) na frequência da tecla (pitch shift)
+    function playSampleOnKey(baseFreq) {
+        if (!sampleBuffer) {
+            // Se não houver sample, toca nota normal como fallback
+            playNormalNote(baseFreq);
+            return;
         }
+        if (!audioCtx) initAudio();
+        if (audioCtx.state === 'suspended') audioCtx.resume();
 
-        // eventos das teclas (mouse e toque)
-        for (let i = 0; i < LANES; i++) {
-            document.getElementById('key'+i).addEventListener('mousedown', (e) => { e.preventDefault(); pressKey(parseInt(e.currentTarget.dataset.key)); });
-            document.getElementById('key'+i).addEventListener('touchstart', (e) => { e.preventDefault(); pressKey(parseInt(e.currentTarget.dataset.key)); });
+        const source = audioCtx.createBufferSource();
+        source.buffer = sampleBuffer;
+        const gainNodeSample = audioCtx.createGain();
+        gainNodeSample.gain.value = sampleGainValue;
+        // pitch shift: ratio entre a frequência original do sample (vamos detectar ou usar nota base média)
+        // Para manter musicalidade: mapeamos a frequência da tecla para a taxa de reprodução.
+        // O sample original tem uma frequência "fundamental" média. Mas vamos adotar um método interessante:
+        // consideramos que o sample foi gravado em "tom de referência" 440Hz. Logo rate = baseFreq / 440.
+        // Dá efeito de sample esticado, bem divertido.
+        let referencePitch = 440.0; 
+        let playbackRate = baseFreq / referencePitch;
+        // Limites para não distorcer demais
+        playbackRate = Math.min(2.5, Math.max(0.4, playbackRate));
+        source.playbackRate.value = playbackRate;
+        source.connect(gainNodeSample);
+        gainNodeSample.connect(masterGain);
+        source.start();
+        // fade out suave no final
+        const duration = sampleBuffer.duration / playbackRate;
+        gainNodeSample.gain.setValueAtTime(sampleGainValue, audioCtx.currentTime);
+        gainNodeSample.gain.exponentialRampToValueAtTime(0.0001, audioCtx.currentTime + duration);
+    }
+
+    // Função de toque geral (modo sample ou piano)
+    function playKey(freq, noteName) {
+        if (!audioCtx) initAudio();
+        if (audioCtx.state === 'suspended') audioCtx.resume();
+        if (sampleModeActive && sampleBuffer) {
+            playSampleOnKey(freq);
+        } else {
+            playNormalNote(freq);
         }
+        // efeito visual
+    }
 
-        // teclado PC: A S D F (respectivamente)
-        window.addEventListener('keydown', (e) => {
-            if (!gameActive) return;
-            let key = e.key.toLowerCase();
-            let map = { 'a':0, 's':1, 'd':2, 'f':3 };
-            if (map.hasOwnProperty(key)) {
+    // Construir teclado DOM
+    function buildKeyboard() {
+        keyboardDiv.innerHTML = '';
+        fullKeyboard.forEach((key, idx) => {
+            const keyDiv = document.createElement('div');
+            keyDiv.className = key.type === 'white' ? 'white-key' : 'black-key';
+            keyDiv.textContent = key.displayName;
+            keyDiv.setAttribute('data-freq', key.freq);
+            keyDiv.setAttribute('data-name', key.displayName);
+            keyDiv.addEventListener('mousedown', (e) => {
                 e.preventDefault();
-                pressKey(map[key]);
-            }
+                playKey(key.freq, key.displayName);
+                addPlayingClass(keyDiv);
+            });
+            keyDiv.addEventListener('touchstart', (e) => {
+                e.preventDefault();
+                playKey(key.freq, key.displayName);
+                addPlayingClass(keyDiv);
+            });
+            keyboardDiv.appendChild(keyDiv);
         });
+    }
+    function addPlayingClass(el) {
+        el.classList.add('playing');
+        setTimeout(() => el.classList.remove('playing'), 120);
+    }
 
-        // Loading some segundos
-        setTimeout(() => {
-            loadingScreen.classList.add('hide');
-        }, 2000);
-
-        // Dificuldade desc
-        function updateDiffDesc() {
-            let val = parseInt(difficultyInput.value);
-            if (val <=4) difficultyDesc.innerText = 'fácil';
-            else if (val <=7) difficultyDesc.innerText = 'médio';
-            else difficultyDesc.innerText = 'rápido / notas falsas';
+    // --------------------------------------------------------------
+    // 3. Gravação de Áudio (Microfone) com duração mínima 5s, faixa editável via gain slider
+    // --------------------------------------------------------------
+    async function startRecording() {
+        if (isRecording) return;
+        if (!navigator.mediaDevices || !navigator.mediaDevices.getUserMedia) {
+            alert("Seu navegador não suporta gravação de áudio.");
+            return;
         }
-        difficultyInput.addEventListener('input', updateDiffDesc);
-        updateDiffDesc();
+        try {
+            const stream = await navigator.mediaDevices.getUserMedia({ audio: true });
+            mediaRecorder = new MediaRecorder(stream);
+            recordedChunks = [];
+            mediaRecorder.ondataavailable = (event) => {
+                if (event.data.size > 0) recordedChunks.push(event.data);
+            };
+            mediaRecorder.onstop = () => {
+                const blob = new Blob(recordedChunks, { type: 'audio/wav' });
+                if (blob.size === 0) {
+                    sampleStatusSpan.innerText = "⚠️ Nenhum áudio capturado";
+                    return;
+                }
+                // Verificar duração mínima: precisamos decodificar para obter duração
+                const fileReader = new FileReader();
+                fileReader.onload = async function(e) {
+                    const arrayBuffer = e.target.result;
+                    if (!audioCtx) initAudio();
+                    try {
+                        const decoded = await audioCtx.decodeAudioData(arrayBuffer);
+                        if (decoded.duration < 5.0) {
+                            alert(`O áudio gravado tem apenas ${decoded.duration.toFixed(1)} segundos. É necessário pelo menos 5 segundos para usar no piano. Tente novamente!`);
+                            sampleStatusSpan.innerText = `❌ Áudio curto (${decoded.duration.toFixed(1)}s)`;
+                            return;
+                        }
+                        // sucesso, armazenar buffer
+                        if (sampleBuffer) sampleBuffer = null;
+                        sampleBuffer = decoded;
+                        recordedBlob = blob;
+                        if (recordedAudioUrl) URL.revokeObjectURL(recordedAudioUrl);
+                        recordedAudioUrl = URL.createObjectURL(blob);
+                        sampleStatusSpan.innerText = `🎤 Sample carregado! (${decoded.duration.toFixed(1)}s)`;
+                        durationInfoSpan.innerText = `⏱️ Duração: ${decoded.duration.toFixed(1)} s`;
+                    } catch(err) {
+                        console.error(err);
+                        alert("Erro ao processar áudio gravado.");
+                    }
+                };
+                fileReader.readAsArrayBuffer(blob);
+                // Fechar faixas do stream
+                stream.getTracks().forEach(track => track.stop());
+            };
+            mediaRecorder.start();
+            isRecording = true;
+            recordBtn.classList.add('recording');
+            sampleStatusSpan.innerText = "🔴 Gravando... fale algo (mín 5s)";
+            // Parar automaticamente após 15 segundos para não ficar eterno, mas usuário pode parar
+            setTimeout(() => {
+                if (isRecording) stopRecording();
+            }, 16000);
+        } catch (err) {
+            console.error("Microfone erro", err);
+            alert("Permissão de microfone necessária para gravar.");
+        }
+    }
 
-        // Iniciar jogo
-        document.getElementById('startGameBtn').addEventListener('click', ()=>{
-            gameActive = true;
-            combo = 0; maxComboValue = 0; totalNotes = 0; hitScore = 0; perfect=0; verygood=0; good=0; bad=0; miss=0; currentComboMilestone=0;
-            updatePercent(); updateCombo();
-            // esconder resultados antigos
-            resultScreen.style.display = 'block'; // só para mostrar
-            gradeSpan.innerText = 'JOGANDO...';
-            // notas falsas/longas sao apenas conceito
-        });
+    function stopRecording() {
+        if (mediaRecorder && isRecording && mediaRecorder.state !== 'inactive') {
+            mediaRecorder.stop();
+            isRecording = false;
+            recordBtn.classList.remove('recording');
+        } else {
+            if(mediaRecorder && mediaRecorder.state === 'inactive') isRecording = false;
+            recordBtn.classList.remove('recording');
+        }
+    }
 
-        // final de jogo simulado (botao "tentar novamente" gera resultado)
-        document.getElementById('playAgainBtn').addEventListener('click', ()=>{
-            if (gameActive) gameActive = false; // parar
-
-            let perc = totalNotes>0 ? (hitScore/totalNotes*100) : 0;
-            finalPercent.innerText = perc.toFixed(4)+'%';
-            maxComboSpan.innerText = maxComboValue;
-            perfectSpan.innerText = perfect;
-            verygoodSpan.innerText = verygood;
-            goodSpan.innerText = good;
-            badSpan.innerText = bad;
-            missSpan.innerText = miss;
-
-            // Grade
-            if (perc === 100) gradeSpan.innerText = 'S+';
-            else if (perc >= 85) gradeSpan.innerText = 'S';
-            else if (perc >= 75) gradeSpan.innerText = 'A';
-            else if (perc >= 56) gradeSpan.innerText = 'B';
-            else if (perc >= 41) gradeSpan.innerText = 'C';
-            else if (perc >= 26) gradeSpan.innerText = 'D';
-            else if (perc >= 16) gradeSpan.innerText = 'E';
-            else gradeSpan.innerText = 'F';
-
-            // Reset gameactive
-            gameActive = false;
-        });
-
-        // toggle comemoração
-        toggleCelebBtn.addEventListener('click', ()=>{
-            celebrationEnabled = !celebrationEnabled;
-            toggleCelebBtn.style.opacity = celebrationEnabled ? '1' : '0.5';
-        });
-
-        // feedback - caixa de entrada do dono (simulação)
-        document.getElementById('feedbackBtn').addEventListener('click', ()=>{
-            let feedback = prompt("Escreva seu feedback (aparecerá na caixa de entrada do dono):");
-            if (feedback) {
-                alert("📬 Feedback enviado! (simulado: '" + feedback + "' apareceria na sua caixa de entrada)");
-                // Aqui você pode implementar um mailto ou backend
-            }
-        });
-
-        // tutorial
-        document.getElementById('tutorialBtn').addEventListener('click', ()=>{
-            alert("🎹 TUTORIAL:\nTeclas: A S D F ou toque nas teclas roxas.\nNotas longas: segure (simulado).\nNotas falsas: aparecem em dificuldade alta.\nMargem de erro automática.\nAcertos: Perfect
+    function playRecordedSample() {
+        if (!sampleBuffer) {
+            alert("Nenhum sample gravado. Grave um som com pelo menos 5 segundos.");
+            return;
+        }
+        if (!audioCtx) initAudio()
