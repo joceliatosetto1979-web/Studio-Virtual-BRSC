@@ -2,523 +2,274 @@
 <html lang="pt-BR">
 <head>
     <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no">
-    <title>Piano Mágico | Gravação de Sons e Efeitos</title>
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Criador e Rastreador de Partitura</title>
     <style>
-        * {
-            user-select: none;
-            -webkit-tap-highlight-color: transparent;
-        }
-
         body {
-            background: linear-gradient(145deg, #1a2a3a 0%, #0f1a24 100%);
-            min-height: 100vh;
+            background-color: #1a1a1a;
+            color: #ffffff;
+            font-family: 'Segoe UI', Tahoma, sans-serif;
             display: flex;
-            justify-content: center;
+            flex-direction: column;
             align-items: center;
-            font-family: 'Segoe UI', 'Poppins', system-ui, -apple-system, sans-serif;
-            margin: 0;
             padding: 20px;
+            margin: 0;
         }
-
-        /* Container principal */
-        .piano-container {
-            background: rgba(0, 0, 0, 0.4);
-            border-radius: 48px;
-            padding: 24px 20px 30px 20px;
-            backdrop-filter: blur(2px);
-            box-shadow: 0 25px 45px rgba(0,0,0,0.4), inset 0 1px 1px rgba(255,255,255,0.1);
+        h1 { color: #4CAF50; margin-bottom: 5px; }
+        .painel-criacao {
+            background: #2a2a2a;
+            padding: 20px;
+            border-radius: 15px;
+            margin-bottom: 20px;
+            width: 90%;
+            max-width: 600px;
+            text-align: center;
         }
-
-        /* Área do teclado rolável horizontalmente */
-        .keyboard-wrapper {
-            overflow-x: auto;
-            overflow-y: hidden;
-            padding-bottom: 12px;
-            cursor: grab;
-            scroll-behavior: smooth;
-            border-radius: 28px;
-        }
-        .keyboard-wrapper:active {
-            cursor: grabbing;
-        }
-        .keyboard {
-            display: flex;
-            flex-direction: row;
-            background: #0b1219;
-            border-radius: 24px;
-            padding: 16px 12px;
-            gap: 2px;
-            min-width: max-content;
-            box-shadow: inset 0 2px 8px rgba(0,0,0,0.6), 0 8px 18px rgba(0,0,0,0.3);
-        }
-
-        /* Estilo das teclas brancas */
-        .white-key {
-            width: 70px;
-            height: 220px;
-            background: linear-gradient(145deg, #fef9e8, #fff5e0);
-            border-radius: 0 0 16px 16px;
-            border: 1px solid #ddd2b0;
-            box-shadow: 0 4px 8px rgba(0,0,0,0.2), inset 0 1px 0 #ffffffcc;
-            cursor: pointer;
-            transition: all 0.05s linear;
-            display: flex;
-            align-items: flex-end;
-            justify-content: center;
-            padding-bottom: 18px;
-            font-weight: 600;
-            color: #2c3e44;
-            font-size: 1rem;
-            text-transform: uppercase;
-            position: relative;
-            z-index: 1;
-        }
-
-        /* Teclas pretas */
-        .black-key {
-            width: 42px;
-            height: 135px;
-            background: linear-gradient(145deg, #1e272e, #0a0f14);
-            margin-left: -21px;
-            margin-right: -21px;
-            border-radius: 0 0 12px 12px;
-            z-index: 2;
-            box-shadow: 0 6px 10px rgba(0,0,0,0.5), inset 0 1px 1px rgba(255,255,255,0.2);
-            cursor: pointer;
-            transition: all 0.05s linear;
-            display: flex;
-            align-items: flex-end;
-            justify-content: center;
-            padding-bottom: 18px;
-            color: #ecd9b4;
-            font-size: 0.7rem;
-            font-weight: 500;
-        }
-
-        .white-key:active, .black-key:active, .playing {
-            transform: translateY(4px);
-            filter: brightness(0.94);
-            transition: 0.02s;
-        }
-
-        /* Painel de controle */
-        .control-panel {
-            display: flex;
-            flex-wrap: wrap;
-            justify-content: center;
-            gap: 15px;
-            margin-top: 28px;
-            margin-bottom: 15px;
-            align-items: center;
-        }
-
-        button, .mode-toggle {
-            background: #2c3e2f;
-            border: none;
-            padding: 10px 20px;
-            border-radius: 60px;
-            font-weight: bold;
-            font-size: 1rem;
+        input[type="text"] {
+            width: 80%;
+            padding: 10px;
+            font-size: 18px;
+            border-radius: 8px;
+            border: 2px solid #4CAF50;
+            background: #333;
             color: white;
+            margin-bottom: 10px;
+        }
+        .botoes-acao button {
+            padding: 10px 20px;
+            font-size: 16px;
+            margin: 5px;
+            border: none;
+            border-radius: 8px;
             cursor: pointer;
-            backdrop-filter: blur(4px);
-            background: rgba(30, 40, 45, 0.9);
-            box-shadow: 0 5px 12px rgba(0,0,0,0.3);
-            transition: 0.1s ease;
-            font-family: inherit;
-            border: 1px solid rgba(255,215,150,0.5);
-        }
-        button:active {
-            transform: scale(0.96);
-        }
-        .record-btn {
-            background: #aa2e4e;
-            box-shadow: 0 0 6px #ff6680;
-        }
-        .record-btn.recording {
-            background: #e34d6e;
-            animation: pulseRed 1s infinite;
-            box-shadow: 0 0 14px #ff3366;
-        }
-        @keyframes pulseRed {
-            0% { opacity: 1; background: #e34d6e;}
-            50% { opacity: 0.8; background: #ff4d6d;}
-            100% { opacity: 1; background: #e34d6e;}
-        }
-
-        .mode-toggle {
-            background: #2c5a6e;
+            transition: 0.2s;
             font-weight: bold;
-            letter-spacing: 1px;
         }
-        .mode-toggle.sample-mode {
-            background: #9b4b6e;
-            box-shadow: 0 0 8px #ffa987;
-        }
-
-        .slider-container {
-            background: rgba(0,0,0,0.6);
-            border-radius: 40px;
-            padding: 6px 18px;
-            display: flex;
-            align-items: center;
-            gap: 14px;
-            backdrop-filter: blur(4px);
-        }
-        .slider-container label {
-            color: #f3e6c2;
-            font-weight: 500;
-        }
-        input[type="range"] {
-            width: 160px;
-            height: 5px;
-            -webkit-appearance: none;
-            background: #d4c9a5;
-            border-radius: 5px;
-            outline: none;
-        }
-        input[type="range"]:focus {
-            outline: none;
-        }
-        input[type="range"]::-webkit-slider-thumb {
-            -webkit-appearance: none;
-            width: 18px;
-            height: 18px;
-            border-radius: 50%;
-            background: #ffcf7a;
-            cursor: pointer;
-            box-shadow: 0 1px 5px black;
-        }
-        .info-status {
-            background: #00000066;
-            padding: 8px 16px;
-            border-radius: 40px;
-            font-size: 0.8rem;
-            color: #f5e5c0;
-            font-weight: 500;
+        .btn-ouvir { background-color: #2196F3; color: white; }
+        .btn-ouvir:hover { background-color: #1976D2; }
+        .btn-tocar { background-color: #4CAF50; color: white; }
+        .btn-tocar:hover { background-color: #45a049; }
+        
+        .nota-alvo-container {
+            padding: 30px;
+            border: 4px solid #4CAF50;
+            border-radius: 20px;
+            background: #2a2a2a;
             text-align: center;
+            margin-top: 20px;
+            width: 300px;
         }
-        .sample-wave {
-            background: #1a262e;
-            border-radius: 32px;
-            margin-top: 12px;
-            padding: 8px 12px;
-            display: flex;
-            align-items: center;
-            justify-content: space-between;
-            flex-wrap: wrap;
-            gap: 8px;
-        }
-        .badge {
-            background: #2b3b2b;
-            border-radius: 30px;
-            padding: 4px 12px;
-            font-size: 0.75rem;
-            color: #ffeaac;
-        }
-        footer {
-            text-align: center;
-            margin-top: 15px;
-            font-size: 0.7rem;
-            color: #adad9e;
-        }
-        @media (max-width: 700px) {
-            .white-key { width: 55px; height: 180px; font-size: 0.7rem;}
-            .black-key { width: 36px; height: 110px; margin-left: -18px; margin-right: -18px;}
-            button { padding: 6px 14px; font-size: 0.8rem;}
-        }
+        #nota-alvo { font-size: 80px; font-weight: bold; margin: 10px 0; color: #4CAF50; }
+        #proximas-notas { font-size: 24px; color: #888888; letter-spacing: 3px; margin-top: 20px; }
+        #mensagem { color: #ffeb3b; margin-top: 10px; }
     </style>
 </head>
 <body>
-<div>
-    <div class="piano-container">
-        <div class="keyboard-wrapper" id="scrollWrapper">
-            <div class="keyboard" id="pianoKeyboard">
-                <!-- Teclas serão geradas via JS -->
-            </div>
-        </div>
 
-        <div class="control-panel">
-            <button id="recordBtn" class="record-btn">🎙️ Gravar Som</button>
-            <button id="stopRecordBtn" class="record-btn">⏹️ Parar</button>
-            <button id="playSampleBtn">🔊 Tocar Sample Gravado</button>
-            <div id="modeToggle" class="mode-toggle">🎛️ Modo: Piano Normal</div>
+    <h1>Suas Notas</h1>
+    <p>Digite as notas (Ex: C4 D4 E4 ou Do4 Re4 Mi4):</p>
+    
+    <div class="painel-criacao">
+        <input type="text" id="input-notas" value="Mi4 Mi4 Fa4 Sol4 Sol4 Fa4 Mi4 Re4 Do4 Do4 Re4 Mi4" placeholder="Ex: Do4 Re4 Mi4 ou C4 D4 E4">
+        <div class="botoes-acao">
+            <button class="btn-ouvir" id="btn-ouvir-tudo">Ouvir o que digitei 🎵</button>
+            <button class="btn-tocar" id="btn-iniciar-violao">Tocar no Violão 🎸</button>
         </div>
-
-        <div class="slider-container">
-            <label>🎚️ Faixa / Ganho do Sample:</label>
-            <input type="range" id="sampleGainSlider" min="0" max="2" step="0.01" value="0.9">
-            <span id="gainValue" class="badge">0.90x</span>
-        </div>
-
-        <div class="sample-wave">
-            <span class="badge" id="sampleStatus">📼 Nenhum sample gravado</span>
-            <span class="badge" id="durationInfo">⏱️ Duração: -- s</span>
-            <span class="badge" id="modeIndicator">🎹 Piano clássico</span>
-        </div>
-        <footer>✨ Role horizontalmente | Grave qualquer som → toque no piano com o sample | Ajuste volume do sample</footer>
+        <p id="mensagem"></p>
     </div>
-</div>
+
+    <div class="nota-alvo-container" style="display: none;" id="painel-notas">
+        <p style="margin: 0;">Toque agora:</p>
+        <p id="nota-alvo">?</p>
+        <p id="nota-ouvida" style="color: #aaa;">Ouvindo: ...</p>
+    </div>
+
+    <p id="proximas-notas"></p>
 
 <script>
-    // --------------------------------------------------------------
-    // 1. Notas musicais (12 tons) + Mapeamento visual
-    // --------------------------------------------------------------
-    const NOTES = [
-        { name: "C",  freq: 261.63, type: "white" },  // Dó4
-        { name: "C#", freq: 277.18, type: "black" },
-        { name: "D",  freq: 293.66, type: "white" },
-        { name: "D#", freq: 311.13, type: "black" },
-        { name: "E",  freq: 329.63, type: "white" },
-        { name: "F",  freq: 349.23, type: "white" },
-        { name: "F#", freq: 369.99, type: "black" },
-        { name: "G",  freq: 392.00, type: "white" },
-        { name: "G#", freq: 415.30, type: "black" },
-        { name: "A",  freq: 440.00, type: "white" },
-        { name: "A#", freq: 466.16, type: "black" },
-        { name: "B",  freq: 493.88, type: "white" }
-    ];
+    let partitura = [];
+    let notaAtualIndex = 0;
+    let audioContext;
+    let analyser, microphone;
+    let escutando = false;
+    let framesAcertados = 0;
 
-    // Expandir 3 oitavas para ter boa rolagem (C3 até B5)
-    const OCTAVES = 3;
-    const START_OCTAVE = 3; // Dó3
-    let fullKeyboard = [];
-    for (let oct = 0; oct < OCTAVES; oct++) {
-        for (let i = 0; i < NOTES.length; i++) {
-            let note = NOTES[i];
-            let octaveReal = START_OCTAVE + oct;
-            let freq = note.freq * Math.pow(2, oct);
-            let displayName = note.name + octaveReal;
-            fullKeyboard.push({
-                id: `${note.name}${octaveReal}`,
-                name: note.name,
-                freq: freq,
-                type: note.type,
-                displayName: displayName
-            });
+    // Dicionário que traduz o texto para o índice da nota (0 a 11)
+    function traduzirNota(notaStr) {
+        let n = notaStr.toLowerCase().trim();
+        let oitava = 4; // Oitava padrão
+        
+        // Puxa o número da oitava se o jogador digitar (ex: extrai o 4 de "Do4")
+        let numMatch = n.match(/\d+/);
+        if (numMatch) {
+            oitava = parseInt(numMatch[0]);
+            n = n.replace(numMatch[0], "");
         }
+        
+        let indice = -1;
+        if (n==="c" || n==="do" || n==="dó") indice = 0;
+        else if (n==="c#" || n==="do#" || n==="dó#") indice = 1;
+        else if (n==="d" || n==="re" || n==="ré") indice = 2;
+        else if (n==="d#" || n==="re#" || n==="ré#") indice = 3;
+        else if (n==="e" || n==="mi") indice = 4;
+        else if (n==="f" || n==="fa" || n==="fá") indice = 5;
+        else if (n==="f#" || n==="fa#" || n==="fá#") indice = 6;
+        else if (n==="g" || n==="sol") indice = 7;
+        else if (n==="g#" || n==="sol#") indice = 8;
+        else if (n==="a" || n==="la" || n==="lá") indice = 9;
+        else if (n==="a#" || n==="la#" || n==="lá#") indice = 10;
+        else if (n==="b" || n==="si") indice = 11;
+        
+        if (indice === -1) return null;
+        
+        // Fórmula matemática para descobrir os Hertz (Hz) da nota
+        let midi = (oitava + 1) * 12 + indice;
+        let frequencia = 440 * Math.pow(2, (midi - 69) / 12);
+        
+        return { nomeFormatado: notaStr, frequencia: frequencia, indiceMidi: midi };
     }
 
-    // --------------------------------------------------------------
-    // 2. Áudio Web Audio API
-    // --------------------------------------------------------------
-    let audioCtx = null;
-    let masterGain = null;
-    let sampleBuffer = null;       // armazena AudioBuffer do sample gravado
-    let isRecording = false;
-    let mediaRecorder = null;
-    let recordedChunks = [];
-    let recordedBlob = null;
-    let recordedAudioUrl = null;
-    let sampleModeActive = false;   // true = tocar sample nas teclas, false = piano normal
-
-    // Controle de ganho do sample
-    let sampleGainValue = 0.9;
-    const gainSlider = document.getElementById('sampleGainSlider');
-    const gainSpan = document.getElementById('gainValue');
-
-    // UI Elements
-    const recordBtn = document.getElementById('recordBtn');
-    const stopRecordBtn = document.getElementById('stopRecordBtn');
-    const playSampleBtn = document.getElementById('playSampleBtn');
-    const modeToggleBtn = document.getElementById('modeToggle');
-    const sampleStatusSpan = document.getElementById('sampleStatus');
-    const durationInfoSpan = document.getElementById('durationInfo');
-    const modeIndicatorSpan = document.getElementById('modeIndicator');
-    const keyboardDiv = document.getElementById('pianoKeyboard');
-    const scrollWrapper = document.getElementById('scrollWrapper');
-
-    // Inicializar áudio (user interaction required, mas ativamos no primeiro toque)
-    function initAudio() {
-        if (audioCtx) return;
-        audioCtx = new (window.AudioContext || window.webkitAudioContext)();
-        masterGain = audioCtx.createGain();
-        masterGain.gain.value = 0.35;  // volume global do piano
-        masterGain.connect(audioCtx.destination);
-    }
-
-    // Tocar nota com oscilador (piano sintetizado simples, mas bonito)
-    function playNormalNote(freq, duration = 1.2) {
-        if (!audioCtx) initAudio();
-        if (audioCtx.state === 'suspended') {
-            audioCtx.resume();
-        }
-        const now = audioCtx.currentTime;
-        const osc = audioCtx.createOscillator();
-        const gainNode = audioCtx.createGain();
-        osc.type = 'triangle'; // som suave
+    // Função para o aplicativo "tocar" o som da nota para o jogador ouvir
+    function tocarFrequencia(freq, duracao = 0.5) {
+        if (!audioContext) audioContext = new (window.AudioContext || window.webkitAudioContext)();
+        
+        const osc = audioContext.createOscillator();
+        const ganho = audioContext.createGain();
+        
+        osc.type = "sine"; // Som suave
         osc.frequency.value = freq;
-        gainNode.gain.value = 0.28;
-        osc.connect(gainNode);
-        gainNode.connect(masterGain);
+        
+        osc.connect(ganho);
+        ganho.connect(audioContext.destination);
+        
         osc.start();
-        gainNode.gain.exponentialRampToValueAtTime(0.0001, now + duration);
-        osc.stop(now + duration);
-        // harmônico extra para simular piano
-        const osc2 = audioCtx.createOscillator();
-        const gain2 = audioCtx.createGain();
-        osc2.type = 'sine';
-        osc2.frequency.value = freq * 2.01;
-        gain2.gain.value = 0.08;
-        osc2.connect(gain2);
-        gain2.connect(masterGain);
-        osc2.start();
-        gain2.gain.exponentialRampToValueAtTime(0.0001, now + duration * 0.9);
-        osc2.stop(now + duration);
+        ganho.gain.exponentialRampToValueAtTime(0.00001, audioContext.currentTime + duracao);
+        osc.stop(audioContext.currentTime + duracao);
     }
 
-    // Tocar sample (buffer gravado) na frequência da tecla (pitch shift)
-    function playSampleOnKey(baseFreq) {
-        if (!sampleBuffer) {
-            // Se não houver sample, toca nota normal como fallback
-            playNormalNote(baseFreq);
+    // Botão de ouvir a sequência digitada
+    document.getElementById('btn-ouvir-tudo').addEventListener('click', async () => {
+        const texto = document.getElementById('input-notas').value;
+        const notasDigitadas = texto.split(" ").filter(n => n.length > 0);
+        
+        document.getElementById('mensagem').innerText = "Tocando...";
+        
+        for (let i = 0; i < notasDigitadas.length; i++) {
+            let dadosNota = traduzirNota(notasDigitadas[i]);
+            if (dadosNota) {
+                tocarFrequencia(dadosNota.frequencia, 0.4);
+                // Espera meia segundo antes de tocar a próxima
+                await new Promise(r => setTimeout(r, 500)); 
+            }
+        }
+        document.getElementById('mensagem').innerText = "Pronto!";
+    });
+
+    // Função para atualizar a tela do violão
+    function atualizarTela() {
+        const notaAlvoEl = document.getElementById('nota-alvo');
+        const proximasNotasEl = document.getElementById('proximas-notas');
+        
+        if (notaAtualIndex >= partitura.length) {
+            notaAlvoEl.innerText = "FIM!";
+            proximasNotasEl.innerText = "";
             return;
         }
-        if (!audioCtx) initAudio();
-        if (audioCtx.state === 'suspended') audioCtx.resume();
-
-        const source = audioCtx.createBufferSource();
-        source.buffer = sampleBuffer;
-        const gainNodeSample = audioCtx.createGain();
-        gainNodeSample.gain.value = sampleGainValue;
-        // pitch shift: ratio entre a frequência original do sample (vamos detectar ou usar nota base média)
-        // Para manter musicalidade: mapeamos a frequência da tecla para a taxa de reprodução.
-        // O sample original tem uma frequência "fundamental" média. Mas vamos adotar um método interessante:
-        // consideramos que o sample foi gravado em "tom de referência" 440Hz. Logo rate = baseFreq / 440.
-        // Dá efeito de sample esticado, bem divertido.
-        let referencePitch = 440.0; 
-        let playbackRate = baseFreq / referencePitch;
-        // Limites para não distorcer demais
-        playbackRate = Math.min(2.5, Math.max(0.4, playbackRate));
-        source.playbackRate.value = playbackRate;
-        source.connect(gainNodeSample);
-        gainNodeSample.connect(masterGain);
-        source.start();
-        // fade out suave no final
-        const duration = sampleBuffer.duration / playbackRate;
-        gainNodeSample.gain.setValueAtTime(sampleGainValue, audioCtx.currentTime);
-        gainNodeSample.gain.exponentialRampToValueAtTime(0.0001, audioCtx.currentTime + duration);
+        
+        notaAlvoEl.innerText = partitura[notaAtualIndex];
+        let proximas = partitura.slice(notaAtualIndex + 1, notaAtualIndex + 5);
+        proximasNotasEl.innerText = proximas.join("  ");
     }
 
-    // Função de toque geral (modo sample ou piano)
-    function playKey(freq, noteName) {
-        if (!audioCtx) initAudio();
-        if (audioCtx.state === 'suspended') audioCtx.resume();
-        if (sampleModeActive && sampleBuffer) {
-            playSampleOnKey(freq);
-        } else {
-            playNormalNote(freq);
-        }
-        // efeito visual
-    }
+    // Iniciar o microfone para o violão
+    document.getElementById('btn-iniciar-violao').addEventListener('click', async () => {
+        // Carrega as notas do input para o array
+        const texto = document.getElementById('input-notas').value;
+        partitura = texto.split(" ").filter(n => n.length > 0);
+        notaAtualIndex = 0;
 
-    // Construir teclado DOM
-    function buildKeyboard() {
-        keyboardDiv.innerHTML = '';
-        fullKeyboard.forEach((key, idx) => {
-            const keyDiv = document.createElement('div');
-            keyDiv.className = key.type === 'white' ? 'white-key' : 'black-key';
-            keyDiv.textContent = key.displayName;
-            keyDiv.setAttribute('data-freq', key.freq);
-            keyDiv.setAttribute('data-name', key.displayName);
-            keyDiv.addEventListener('mousedown', (e) => {
-                e.preventDefault();
-                playKey(key.freq, key.displayName);
-                addPlayingClass(keyDiv);
-            });
-            keyDiv.addEventListener('touchstart', (e) => {
-                e.preventDefault();
-                playKey(key.freq, key.displayName);
-                addPlayingClass(keyDiv);
-            });
-            keyboardDiv.appendChild(keyDiv);
-        });
-    }
-    function addPlayingClass(el) {
-        el.classList.add('playing');
-        setTimeout(() => el.classList.remove('playing'), 120);
-    }
-
-    // --------------------------------------------------------------
-    // 3. Gravação de Áudio (Microfone) com duração mínima 5s, faixa editável via gain slider
-    // --------------------------------------------------------------
-    async function startRecording() {
-        if (isRecording) return;
-        if (!navigator.mediaDevices || !navigator.mediaDevices.getUserMedia) {
-            alert("Seu navegador não suporta gravação de áudio.");
-            return;
-        }
         try {
+            if (!audioContext) audioContext = new (window.AudioContext || window.webkitAudioContext)();
             const stream = await navigator.mediaDevices.getUserMedia({ audio: true });
-            mediaRecorder = new MediaRecorder(stream);
-            recordedChunks = [];
-            mediaRecorder.ondataavailable = (event) => {
-                if (event.data.size > 0) recordedChunks.push(event.data);
-            };
-            mediaRecorder.onstop = () => {
-                const blob = new Blob(recordedChunks, { type: 'audio/wav' });
-                if (blob.size === 0) {
-                    sampleStatusSpan.innerText = "⚠️ Nenhum áudio capturado";
-                    return;
-                }
-                // Verificar duração mínima: precisamos decodificar para obter duração
-                const fileReader = new FileReader();
-                fileReader.onload = async function(e) {
-                    const arrayBuffer = e.target.result;
-                    if (!audioCtx) initAudio();
-                    try {
-                        const decoded = await audioCtx.decodeAudioData(arrayBuffer);
-                        if (decoded.duration < 5.0) {
-                            alert(`O áudio gravado tem apenas ${decoded.duration.toFixed(1)} segundos. É necessário pelo menos 5 segundos para usar no piano. Tente novamente!`);
-                            sampleStatusSpan.innerText = `❌ Áudio curto (${decoded.duration.toFixed(1)}s)`;
-                            return;
-                        }
-                        // sucesso, armazenar buffer
-                        if (sampleBuffer) sampleBuffer = null;
-                        sampleBuffer = decoded;
-                        recordedBlob = blob;
-                        if (recordedAudioUrl) URL.revokeObjectURL(recordedAudioUrl);
-                        recordedAudioUrl = URL.createObjectURL(blob);
-                        sampleStatusSpan.innerText = `🎤 Sample carregado! (${decoded.duration.toFixed(1)}s)`;
-                        durationInfoSpan.innerText = `⏱️ Duração: ${decoded.duration.toFixed(1)} s`;
-                    } catch(err) {
-                        console.error(err);
-                        alert("Erro ao processar áudio gravado.");
-                    }
-                };
-                fileReader.readAsArrayBuffer(blob);
-                // Fechar faixas do stream
-                stream.getTracks().forEach(track => track.stop());
-            };
-            mediaRecorder.start();
-            isRecording = true;
-            recordBtn.classList.add('recording');
-            sampleStatusSpan.innerText = "🔴 Gravando... fale algo (mín 5s)";
-            // Parar automaticamente após 15 segundos para não ficar eterno, mas usuário pode parar
-            setTimeout(() => {
-                if (isRecording) stopRecording();
-            }, 16000);
+            
+            analyser = audioContext.createAnalyser();
+            analyser.fftSize = 2048;
+            microphone = audioContext.createMediaStreamSource(stream);
+            microphone.connect(analyser);
+            
+            escutando = true;
+            document.getElementById('painel-notas').style.display = 'block';
+            document.getElementById('mensagem').innerText = "";
+            
+            atualizarTela();
+            detectarPitch();
+            
         } catch (err) {
-            console.error("Microfone erro", err);
-            alert("Permissão de microfone necessária para gravar.");
+            document.getElementById('mensagem').innerText = "Libere o microfone para tocar!";
         }
+    });
+
+    function detectarPitch() {
+        if (!escutando) return;
+        
+        const buffer = new Float32Array(analyser.fftSize);
+        analyser.getFloatTimeDomainData(buffer);
+        const frequencia = autoCorrelacao(buffer, audioContext.sampleRate);
+        
+        if (frequencia !== -1 && notaAtualIndex < partitura.length) {
+            let notaNum = Math.round(12 * (Math.log(frequencia / 440) / Math.log(2))) + 69;
+            
+            // Pega os dados da nota que o jogador tem que tocar agora
+            let dadosNotaAlvo = traduzirNota(partitura[notaAtualIndex]);
+            
+            if (dadosNotaAlvo) {
+                // Compara se o MIDI da nota do violão bate com o MIDI da nota alvo (ignorando a diferença de oitava exata para facilitar o violão)
+                if (notaNum % 12 === dadosNotaAlvo.indiceMidi % 12) {
+                    framesAcertados++;
+                    if (framesAcertados > 10) { 
+                        notaAtualIndex++;
+                        framesAcertados = 0;
+                        atualizarTela();
+                        document.getElementById('painel-notas').style.borderColor = "#FFeb3b";
+                        setTimeout(() => document.getElementById('painel-notas').style.borderColor = "#4CAF50", 200);
+                    }
+                } else {
+                    framesAcertados = 0;
+                }
+            }
+        }
+        requestAnimationFrame(detectarPitch);
     }
 
-    function stopRecording() {
-        if (mediaRecorder && isRecording && mediaRecorder.state !== 'inactive') {
-            mediaRecorder.stop();
-            isRecording = false;
-            recordBtn.classList.remove('recording');
-        } else {
-            if(mediaRecorder && mediaRecorder.state === 'inactive') isRecording = false;
-            recordBtn.classList.remove('recording');
-        }
-    }
+    // Algoritmo matemático para o microfone
+    function autoCorrelacao(buf, sampleRate) {
+        let SIZE = buf.length;
+        let rms = 0;
+        for (let i = 0; i < SIZE; i++) rms += buf[i] * buf[i];
+        rms = Math.sqrt(rms / SIZE);
+        if (rms < 0.01) return -1; 
 
-    function playRecordedSample() {
-        if (!sampleBuffer) {
-            alert("Nenhum sample gravado. Grave um som com pelo menos 5 segundos.");
-            return;
+        let r1 = 0, r2 = SIZE - 1, thres = 0.2;
+        for (let i = 0; i < SIZE / 2; i++) if (Math.abs(buf[i]) < thres) { r1 = i; break; }
+        for (let i = 1; i < SIZE / 2; i++) if (Math.abs(buf[SIZE - i]) < thres) { r2 = SIZE - i; break; }
+
+        buf = buf.slice(r1, r2);
+        SIZE = buf.length;
+        let c = new Array(SIZE).fill(0);
+        for (let i = 0; i < SIZE; i++)
+            for (let j = 0; j < SIZE - i; j++)
+                c[i] = c[i] + buf[j] * buf[j + i];
+
+        let d = 0; while (c[d] > c[d + 1]) d++;
+        let maxval = -1, maxpos = -1;
+        for (let i = d; i < SIZE; i++) {
+            if (c[i] > maxval) { maxval = c[i]; maxpos = i; }
         }
-        if (!audioCtx) initAudio()
+        let T0 = maxpos;
+        return sampleRate / T0;
+    }
+</script>
+
+</body>
+    </html>
+            
