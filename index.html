@@ -2,274 +2,341 @@
 <html lang="pt-BR">
 <head>
     <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Criador e Rastreador de Partitura</title>
+    <title>Berimbau Notation Studio Pro</title>
     <style>
-        body {
-            background-color: #1a1a1a;
-            color: #ffffff;
-            font-family: 'Segoe UI', Tahoma, sans-serif;
-            display: flex;
-            flex-direction: column;
-            align-items: center;
-            padding: 20px;
-            margin: 0;
+        :root {
+            --bg: #121212; --panel: #1e1e2e; --accent: #ff9f43; --text: #eee;
         }
-        h1 { color: #4CAF50; margin-bottom: 5px; }
-        .painel-criacao {
-            background: #2a2a2a;
-            padding: 20px;
-            border-radius: 15px;
-            margin-bottom: 20px;
-            width: 90%;
-            max-width: 600px;
-            text-align: center;
-        }
-        input[type="text"] {
-            width: 80%;
-            padding: 10px;
-            font-size: 18px;
-            border-radius: 8px;
-            border: 2px solid #4CAF50;
-            background: #333;
-            color: white;
-            margin-bottom: 10px;
-        }
-        .botoes-acao button {
-            padding: 10px 20px;
-            font-size: 16px;
-            margin: 5px;
-            border: none;
-            border-radius: 8px;
-            cursor: pointer;
-            transition: 0.2s;
-            font-weight: bold;
-        }
-        .btn-ouvir { background-color: #2196F3; color: white; }
-        .btn-ouvir:hover { background-color: #1976D2; }
-        .btn-tocar { background-color: #4CAF50; color: white; }
-        .btn-tocar:hover { background-color: #45a049; }
+        body { background: var(--bg); color: var(--text); font-family: 'Segoe UI', sans-serif; display: flex; margin: 0; height: 100vh; overflow: hidden; }
         
-        .nota-alvo-container {
-            padding: 30px;
-            border: 4px solid #4CAF50;
-            border-radius: 20px;
-            background: #2a2a2a;
-            text-align: center;
-            margin-top: 20px;
-            width: 300px;
-        }
-        #nota-alvo { font-size: 80px; font-weight: bold; margin: 10px 0; color: #4CAF50; }
-        #proximas-notas { font-size: 24px; color: #888888; letter-spacing: 3px; margin-top: 20px; }
-        #mensagem { color: #ffeb3b; margin-top: 10px; }
+        /* Sidebar Esquerda (Ferramentas) */
+        #toolbar { width: 320px; background: var(--panel); padding: 20px; overflow-y: auto; border-right: 2px solid #333; box-sizing: border-box; }
+        h3 { color: var(--accent); margin-top: 0; }
+        label { display: block; margin-top: 10px; font-size: 0.9em; color: #aaa; }
+        select, input { width: 100%; padding: 8px; margin-top: 5px; background: #333; color: white; border: 1px solid #555; border-radius: 4px; }
+        .row { display: flex; gap: 10px; }
+        .btn { background: var(--accent); border: none; padding: 12px; width: 100%; margin-top: 15px; cursor: pointer; border-radius: 4px; color: #000; font-weight: bold; font-size: 1em; transition: 0.2s; }
+        .btn:hover { filter: brightness(1.2); }
+        .btn-play { background: #4caf50; color: white; }
+        
+        /* Área Principal (Partitura) */
+        #editor-container { flex-grow: 1; padding: 40px; overflow-x: auto; background: #080808; display: flex; flex-direction: column; }
+        
+        /* Header da Partitura (BPM, Força, etc) */
+        #score-header { display: flex; justify-content: space-between; margin-bottom: 20px; font-size: 1.2em; font-weight: bold; min-width: 800px; }
+        
+        /* Partitura Visual */
+        .sheet { background: #fff; color: #000; padding: 40px; min-width: 1000px; border-radius: 8px; position: relative; height: 250px; box-shadow: 0 4px 15px rgba(0,0,0,0.5); }
+        
+        /* Linhas e Cabaça */
+        .stave-lines { position: absolute; top: 100px; left: 150px; right: 40px; height: 80px; display: flex; flex-direction: column; justify-content: space-between; }
+        .line { height: 2px; background: #000; width: 100%; }
+        .cabaca-container { position: absolute; left: 40px; top: 80px; width: 80px; height: 120px; }
+        
+        /* Container de Notas */
+        .notes-track { position: absolute; top: 70px; left: 160px; display: flex; gap: 20px; align-items: flex-start; }
+        
+        /* Estrutura da Nota */
+        .note-wrapper { position: relative; display: flex; flex-direction: column; align-items: center; width: 40px; cursor: pointer; }
+        .note-svg { width: 40px; height: 100px; overflow: visible; }
+        
+        /* Modificadores */
+        .mod-pausa { position: absolute; top: 30px; left: 0; font-size: 40px; color: red; font-weight: bold; pointer-events: none; }
+        .mod-opcional::before { content: "("; position: absolute; left: -10px; top: 35px; font-size: 24px; }
+        .mod-opcional::after { content: ")"; position: absolute; right: -10px; top: 35px; font-size: 24px; }
+        .mod-abafada::after { content: "X"; position: absolute; top: 35px; left: 10px; font-size: 24px; color: blue; font-weight: bold; }
+        
+        /* Posições das Notas na Pauta (Linhas e Espaços) */
+        .pos-1 { margin-top: 60px; } /* Linha 1 (Baixo) */
+        .pos-2 { margin-top: 40px; } /* Espaço 1 */
+        .pos-3 { margin-top: 20px; } /* Linha 2 (Meio) */
+        .pos-4 { margin-top: 0px; }  /* Espaço 2 */
+        .pos-5 { margin-top: -20px;} /* Linha 3 (Cima) */
+        
+        /* Legenda das posições no início */
+        .pos-legend { position: absolute; left: 130px; top: 80px; font-size: 12px; font-weight: bold; display: flex; flex-direction: column; gap: 15px;}
     </style>
 </head>
 <body>
 
-    <h1>Suas Notas</h1>
-    <p>Digite as notas (Ex: C4 D4 E4 ou Do4 Re4 Mi4):</p>
-    
-    <div class="painel-criacao">
-        <input type="text" id="input-notas" value="Mi4 Mi4 Fa4 Sol4 Sol4 Fa4 Mi4 Re4 Do4 Do4 Re4 Mi4" placeholder="Ex: Do4 Re4 Mi4 ou C4 D4 E4">
-        <div class="botoes-acao">
-            <button class="btn-ouvir" id="btn-ouvir-tudo">Ouvir o que digitei 🎵</button>
-            <button class="btn-tocar" id="btn-iniciar-violao">Tocar no Violão 🎸</button>
+<svg width="0" height="0" style="display:none;">
+    <defs>
+        <pattern id="pat-chiado" width="4" height="4" patternUnits="userSpaceOnUse" patternTransform="rotate(45)">
+            <rect width="2" height="4" fill="black" />
+            <rect x="2" width="2" height="4" fill="white" />
+        </pattern>
+        <linearGradient id="pat-solta-chiado" x1="0%" y1="0%" x2="100%" y2="0%">
+            <stop offset="50%" style="stop-color:white; stop-opacity:1" />
+            <stop offset="50%" style="stop-color:black; stop-opacity:1" />
+        </linearGradient>
+    </defs>
+</svg>
+
+<div id="toolbar">
+    <h3>Configuração Global</h3>
+    <div class="row">
+        <div>
+            <label>BPM:</label>
+            <input type="number" id="cfg-bpm" value="120" onchange="atualizarHeader()">
         </div>
-        <p id="mensagem"></p>
+        <div>
+            <label>Força (1-6):</label>
+            <input type="number" id="cfg-forca" value="3" min="1" max="6" onchange="atualizarHeader()">
+        </div>
+    </div>
+    
+    <label>Compasso (Ex: 4/4):</label>
+    <div class="row">
+        <input type="number" id="cfg-comp-notas" value="4" onchange="atualizarHeader()"> /
+        <select id="cfg-comp-base" onchange="atualizarHeader()">
+            <option value="1">1 (Semínima)</option>
+            <option value="2">2 (Mínima)</option>
+            <option value="4">4 (Semibreve)</option>
+            <option value="0.5">1/2 (Colcheia)</option>
+        </select>
     </div>
 
-    <div class="nota-alvo-container" style="display: none;" id="painel-notas">
-        <p style="margin: 0;">Toque agora:</p>
-        <p id="nota-alvo">?</p>
-        <p id="nota-ouvida" style="color: #aaa;">Ouvindo: ...</p>
+    <label>Cabaça (Berimbau):</label>
+    <select id="cfg-cabaca" onchange="renderizar()">
+        <option value="todos">Todos (Branca)</option>
+        <option value="viola">Viola (1/4)</option>
+        <option value="medio">Médio (2/4)</option>
+        <option value="gunga">Gunga (3/4)</option>
+        <option value="berraboi">Berra Boi (4/4)</option>
+    </select>
+    
+    <label>Modo de Visualização:</label>
+    <select id="cfg-guia" onchange="renderizar()">
+        <option value="com">Com Guia (Símbolos nas notas)</option>
+        <option value="sem">Sem Guia (Notas brancas clássicas)</option>
+    </select>
+
+    <hr style="border-color:#444; margin: 20px 0;">
+
+    <h3>Adicionar Elemento</h3>
+    <label>Técnica/Som:</label>
+    <select id="nota-tecnica">
+        <option value="presa">Presa (Preto)</option>
+        <option value="solta">Solta (Branco)</option>
+        <option value="chiado">Chiado (Listrado)</option>
+        <option value="acaxixi">Acaxixi (Círculo no meio)</option>
+        <option value="soltachiado">Solta + Chiado (Metade)</option>
+    </select>
+    
+    <label>Valor da Nota:</label>
+    <select id="nota-valor">
+        <option value="8">Breve (8 tempos)</option>
+        <option value="4">Semibreve (4 tempos)</option>
+        <option value="2">Mínima (2 tempos)</option>
+        <option value="1" selected>Semínima (1 tempo)</option>
+        <option value="0.5">Colcheia (1/2)</option>
+        <option value="0.25">Semicolcheia (1/4)</option>
+        <option value="0.125">Fusa (1/8)</option>
+        <option value="0.0625">Semifusa (1/16)</option>
+    </select>
+
+    <label>Posição na Pauta:</label>
+    <select id="nota-pos">
+        <option value="pos-5">5 - Linha 3 (Alta)</option>
+        <option value="pos-4">4 - Espaço 2</option>
+        <option value="pos-3" selected>3 - Linha 2 (Meio)</option>
+        <option value="pos-2">2 - Espaço 1</option>
+        <option value="pos-1">1 - Linha 1 (Baixa)</option>
+    </select>
+
+    <label>Modificador Especial:</label>
+    <select id="nota-mod">
+        <option value="nenhum">Nenhum</option>
+        <option value="pausa">Pausa (Silêncio)</option>
+        <option value="opcional">Opcional ( )</option>
+        <option value="abafada">Abafada ( X )</option>
+    </select>
+
+    <div class="row">
+        <input type="checkbox" id="nota-ligadura"> <label style="margin-top:0">Ligar com a próxima</label>
     </div>
 
-    <p id="proximas-notas"></p>
+    <button class="btn" onclick="adicionarNota()">+ Inserir na Partitura</button>
+    <button class="btn btn-play" onclick="tocarPartitura()">▶ Tocar Partitura (Áudio)</button>
+    <button class="btn" style="background:#555; color:white;" onclick="limpar()">Limpar Tudo</button>
+</div>
+
+<div id="editor-container">
+    <div id="score-header">
+        <span id="lbl-bpm">BPM - 120 - Semínima</span>
+        <span id="lbl-comp">Compasso: 4/4</span>
+        <span id="lbl-forca">Força: 3</span>
+    </div>
+
+    <div class="sheet">
+        <div class="cabaca-container" id="view-cabaca"></div>
+        
+        <div class="pos-legend">
+            <span>5</span><span>4</span><span>3</span><span>2</span><span>1</span>
+        </div>
+
+        <div class="stave-lines">
+            <div class="line"></div>
+            <div class="line"></div>
+            <div class="line"></div>
+        </div>
+
+        <div class="notes-track" id="view-notas"></div>
+    </div>
+</div>
 
 <script>
     let partitura = [];
-    let notaAtualIndex = 0;
-    let audioContext;
-    let analyser, microphone;
-    let escutando = false;
-    let framesAcertados = 0;
 
-    // Dicionário que traduz o texto para o índice da nota (0 a 11)
-    function traduzirNota(notaStr) {
-        let n = notaStr.toLowerCase().trim();
-        let oitava = 4; // Oitava padrão
-        
-        // Puxa o número da oitava se o jogador digitar (ex: extrai o 4 de "Do4")
-        let numMatch = n.match(/\d+/);
-        if (numMatch) {
-            oitava = parseInt(numMatch[0]);
-            n = n.replace(numMatch[0], "");
+    function atualizarHeader() {
+        const bpm = document.getElementById('cfg-bpm').value;
+        const base = document.getElementById('cfg-comp-base').options[document.getElementById('cfg-comp-base').selectedIndex].text;
+        const forca = document.getElementById('cfg-forca').value;
+        const compN = document.getElementById('cfg-comp-notas').value;
+        const compB = document.getElementById('cfg-comp-base').value;
+
+        document.getElementById('lbl-bpm').innerText = `BPM - ${bpm} - ${base}`;
+        document.getElementById('lbl-comp').innerText = `Compasso: ${compN}/${compB === "0.5" ? "8" : (compB == "0.25" ? "16" : 1/compB)}`;
+        document.getElementById('lbl-forca').innerText = `Força: ${forca}`;
+    }
+
+    function adicionarNota() {
+        const nota = {
+            tecnica: document.getElementById('nota-tecnica').value,
+            valor: parseFloat(document.getElementById('nota-valor').value),
+            posicao: document.getElementById('nota-pos').value,
+            modificador: document.getElementById('nota-mod').value,
+            ligada: document.getElementById('nota-ligadura').checked
+        };
+        partitura.push(nota);
+        renderizar();
+    }
+
+    function limpar() { partitura = []; renderizar(); }
+
+    function getPreenchimento(tecnica, comGuia) {
+        if (!comGuia) return "white"; // Sem guia = clássico branco
+        switch(tecnica) {
+            case 'presa': return "black";
+            case 'solta': return "white";
+            case 'chiado': return "url(#pat-chiado)";
+            case 'soltachiado': return "url(#pat-solta-chiado)";
+            default: return "white";
         }
-        
-        let indice = -1;
-        if (n==="c" || n==="do" || n==="dó") indice = 0;
-        else if (n==="c#" || n==="do#" || n==="dó#") indice = 1;
-        else if (n==="d" || n==="re" || n==="ré") indice = 2;
-        else if (n==="d#" || n==="re#" || n==="ré#") indice = 3;
-        else if (n==="e" || n==="mi") indice = 4;
-        else if (n==="f" || n==="fa" || n==="fá") indice = 5;
-        else if (n==="f#" || n==="fa#" || n==="fá#") indice = 6;
-        else if (n==="g" || n==="sol") indice = 7;
-        else if (n==="g#" || n==="sol#") indice = 8;
-        else if (n==="a" || n==="la" || n==="lá") indice = 9;
-        else if (n==="a#" || n==="la#" || n==="lá#") indice = 10;
-        else if (n==="b" || n==="si") indice = 11;
-        
-        if (indice === -1) return null;
-        
-        // Fórmula matemática para descobrir os Hertz (Hz) da nota
-        let midi = (oitava + 1) * 12 + indice;
-        let frequencia = 440 * Math.pow(2, (midi - 69) / 12);
-        
-        return { nomeFormatado: notaStr, frequencia: frequencia, indiceMidi: midi };
     }
 
-    // Função para o aplicativo "tocar" o som da nota para o jogador ouvir
-    function tocarFrequencia(freq, duracao = 0.5) {
-        if (!audioContext) audioContext = new (window.AudioContext || window.webkitAudioContext)();
+    function renderizarCabaca() {
+        const tipo = document.getElementById('cfg-cabaca').value;
+        let svg = `<svg viewBox="0 0 100 100"><circle cx="50" cy="50" r="45" fill="white" stroke="black" stroke-width="4"/>`;
         
-        const osc = audioContext.createOscillator();
-        const ganho = audioContext.createGain();
+        // Pinta os pedaços (fatias de pizza) baseado no tipo de berimbau
+        if(tipo === 'viola') svg += `<path d="M50,50 L50,5 A45,45 0 0,1 95,50 Z" fill="black"/>`; // 1/4
+        if(tipo === 'medio') svg += `<path d="M50,50 L50,5 A45,45 0 0,1 50,95 Z" fill="black"/>`; // 2/4 (Metade)
+        if(tipo === 'gunga') svg += `<path d="M50,50 L5,50 A45,45 0 1,1 50,95 Z" fill="black"/>`; // 3/4
+        if(tipo === 'berraboi') svg += `<circle cx="50" cy="50" r="45" fill="black"/>`; // 4/4
         
-        osc.type = "sine"; // Som suave
-        osc.frequency.value = freq;
-        
-        osc.connect(ganho);
-        ganho.connect(audioContext.destination);
-        
-        osc.start();
-        ganho.gain.exponentialRampToValueAtTime(0.00001, audioContext.currentTime + duracao);
-        osc.stop(audioContext.currentTime + duracao);
+        svg += `</svg>`;
+        document.getElementById('view-cabaca').innerHTML = svg;
     }
 
-    // Botão de ouvir a sequência digitada
-    document.getElementById('btn-ouvir-tudo').addEventListener('click', async () => {
-        const texto = document.getElementById('input-notas').value;
-        const notasDigitadas = texto.split(" ").filter(n => n.length > 0);
-        
-        document.getElementById('mensagem').innerText = "Tocando...";
-        
-        for (let i = 0; i < notasDigitadas.length; i++) {
-            let dadosNota = traduzirNota(notasDigitadas[i]);
-            if (dadosNota) {
-                tocarFrequencia(dadosNota.frequencia, 0.4);
-                // Espera meia segundo antes de tocar a próxima
-                await new Promise(r => setTimeout(r, 500)); 
+    function renderizar() {
+        renderizarCabaca();
+        const container = document.getElementById('view-notas');
+        const comGuia = document.getElementById('cfg-guia').value === 'com';
+        container.innerHTML = '';
+
+        partitura.forEach((n, index) => {
+            const fill = getPreenchimento(n.tecnica, comGuia);
+            let innerSVG = '';
+            
+            // Lógica visual baseada no valor da nota e na sua imagem
+            // Desenho do corpo da nota
+            if (n.valor === 8) { // Breve (Círculo grosso)
+                innerSVG += `<ellipse cx="20" cy="80" rx="14" ry="10" fill="${fill}" stroke="black" stroke-width="4"/>`;
+            } else if (n.valor === 4) { // Semibreve (Quadrado com bola dentro)
+                innerSVG += `<rect x="5" y="70" width="30" height="20" fill="none" stroke="black" stroke-width="2"/>
+                             <ellipse cx="20" cy="80" rx="12" ry="8" fill="${fill}" stroke="black" stroke-width="1"/>`;
+            } else {
+                // Corpo padrão (oval) para Mínima para baixo
+                innerSVG += `<ellipse cx="15" cy="80" rx="10" ry="7" fill="${fill}" stroke="black" stroke-width="2"/>`;
+                
+                // Acaxixi (círculo preto dentro se for oval e com guia)
+                if(comGuia && n.tecnica === 'acaxixi') {
+                    innerSVG += `<circle cx="15" cy="80" r="4" fill="black"/>`;
+                }
+
+                // Haste (Stem) para Mínima ou menor
+                innerSVG += `<line x1="25" y1="80" x2="25" y2="20" stroke="black" stroke-width="2"/>`;
+                
+                // Colchetes (Flags) baseados no valor
+                if (n.valor <= 0.5) innerSVG += `<path d="M25,20 Q35,30 35,45" fill="none" stroke="black" stroke-width="2"/>`; // 1
+                if (n.valor <= 0.25) innerSVG += `<path d="M25,30 Q35,40 35,55" fill="none" stroke="black" stroke-width="2"/>`; // 2
+                if (n.valor <= 0.125) innerSVG += `<path d="M25,40 Q35,50 35,65" fill="none" stroke="black" stroke-width="2"/>`; // 3
+                if (n.valor <= 0.0625) innerSVG += `<path d="M25,50 Q35,60 35,75" fill="none" stroke="black" stroke-width="2"/>`; // 4
             }
-        }
-        document.getElementById('mensagem').innerText = "Pronto!";
-    });
 
-    // Função para atualizar a tela do violão
-    function atualizarTela() {
-        const notaAlvoEl = document.getElementById('nota-alvo');
-        const proximasNotasEl = document.getElementById('proximas-notas');
-        
-        if (notaAtualIndex >= partitura.length) {
-            notaAlvoEl.innerText = "FIM!";
-            proximasNotasEl.innerText = "";
-            return;
-        }
-        
-        notaAlvoEl.innerText = partitura[notaAtualIndex];
-        let proximas = partitura.slice(notaAtualIndex + 1, notaAtualIndex + 5);
-        proximasNotasEl.innerText = proximas.join("  ");
+            // Juntar notas (Ligadura) Visual
+            if (n.ligada) {
+                innerSVG += `<path d="M15,90 Q35,110 55,90" fill="none" stroke="black" stroke-width="2"/>`;
+            }
+
+            let extraClass = '';
+            let htmlMods = '';
+            if (n.modificador === 'pausa') htmlMods = '<div class="mod-pausa">/</div>';
+            if (n.modificador === 'opcional') extraClass += ' mod-opcional';
+            if (n.modificador === 'abafada') extraClass += ' mod-abafada';
+
+            const notaDiv = document.createElement('div');
+            notaDiv.className = `note-wrapper ${n.posicao} ${extraClass}`;
+            notaDiv.innerHTML = `
+                ${htmlMods}
+                <svg class="note-svg">${innerSVG}</svg>
+            `;
+            container.appendChild(notaDiv);
+        });
     }
 
-    // Iniciar o microfone para o violão
-    document.getElementById('btn-iniciar-violao').addEventListener('click', async () => {
-        // Carrega as notas do input para o array
-        const texto = document.getElementById('input-notas').value;
-        partitura = texto.split(" ").filter(n => n.length > 0);
-        notaAtualIndex = 0;
-
-        try {
-            if (!audioContext) audioContext = new (window.AudioContext || window.webkitAudioContext)();
-            const stream = await navigator.mediaDevices.getUserMedia({ audio: true });
-            
-            analyser = audioContext.createAnalyser();
-            analyser.fftSize = 2048;
-            microphone = audioContext.createMediaStreamSource(stream);
-            microphone.connect(analyser);
-            
-            escutando = true;
-            document.getElementById('painel-notas').style.display = 'block';
-            document.getElementById('mensagem').innerText = "";
-            
-            atualizarTela();
-            detectarPitch();
-            
-        } catch (err) {
-            document.getElementById('mensagem').innerText = "Libere o microfone para tocar!";
-        }
-    });
-
-    function detectarPitch() {
-        if (!escutando) return;
+    // ENGINE DE ÁUDIO MATEMÁTICO (Baseado em BPM e Valor da Nota)
+    async function tocarPartitura() {
+        alert("Atenção: O sistema fará o som da nota respectiva. Aviso: os áudios base carregados são de um Berimbau Gunga (mesmo que a cabaça mostre outro)!");
         
-        const buffer = new Float32Array(analyser.fftSize);
-        analyser.getFloatTimeDomainData(buffer);
-        const frequencia = autoCorrelacao(buffer, audioContext.sampleRate);
+        const bpm = parseInt(document.getElementById('cfg-bpm').value);
+        const tempoBaseBatidaSegundos = 60 / bpm; // Ex: 120 BPM = 0.5 seg por batida base (Semínima)
         
-        if (frequencia !== -1 && notaAtualIndex < partitura.length) {
-            let notaNum = Math.round(12 * (Math.log(frequencia / 440) / Math.log(2))) + 69;
+        for (let i = 0; i < partitura.length; i++) {
+            const n = partitura[i];
             
-            // Pega os dados da nota que o jogador tem que tocar agora
-            let dadosNotaAlvo = traduzirNota(partitura[notaAtualIndex]);
+            // O tempo exato que essa nota ocupa na partitura em ms
+            // Como usamos a Semínima (valor 1) como base para a conta:
+            const tempoDestaNotaMs = (tempoBaseBatidaSegundos * n.valor) * 1000;
             
-            if (dadosNotaAlvo) {
-                // Compara se o MIDI da nota do violão bate com o MIDI da nota alvo (ignorando a diferença de oitava exata para facilitar o violão)
-                if (notaNum % 12 === dadosNotaAlvo.indiceMidi % 12) {
-                    framesAcertados++;
-                    if (framesAcertados > 10) { 
-                        notaAtualIndex++;
-                        framesAcertados = 0;
-                        atualizarTela();
-                        document.getElementById('painel-notas').style.borderColor = "#FFeb3b";
-                        setTimeout(() => document.getElementById('painel-notas').style.borderColor = "#4CAF50", 200);
-                    }
-                } else {
-                    framesAcertados = 0;
+            // Se for pausa, não toca o som, só espera o tempo matemático passar
+            if (n.modificador !== 'pausa') {
+                try {
+                    // Ele procurará na sua pasta os arquivos: presa.mp3, chiado.mp3, etc.
+                    const som = new Audio(`sons/${n.tecnica}.mp3`);
+                    
+                    // Ajuste de volume baseado na força (1 a 6)
+                    const forca = parseInt(document.getElementById('cfg-forca').value);
+                    som.volume = forca / 6; 
+                    
+                    som.play();
+                } catch (e) {
+                    console.log("Arquivo de som não encontrado, silenciando para manter o ritmo.");
                 }
             }
+
+            // O sistema ESPERA EXATAMENTE a duração da nota antes de ir para a próxima.
+            // Ex: Se o BPM for 60, e a nota for Mínima (2), ele espera 2000ms.
+            await new Promise(resolve => setTimeout(resolve, tempoDestaNotaMs));
         }
-        requestAnimationFrame(detectarPitch);
     }
 
-    // Algoritmo matemático para o microfone
-    function autoCorrelacao(buf, sampleRate) {
-        let SIZE = buf.length;
-        let rms = 0;
-        for (let i = 0; i < SIZE; i++) rms += buf[i] * buf[i];
-        rms = Math.sqrt(rms / SIZE);
-        if (rms < 0.01) return -1; 
-
-        let r1 = 0, r2 = SIZE - 1, thres = 0.2;
-        for (let i = 0; i < SIZE / 2; i++) if (Math.abs(buf[i]) < thres) { r1 = i; break; }
-        for (let i = 1; i < SIZE / 2; i++) if (Math.abs(buf[SIZE - i]) < thres) { r2 = SIZE - i; break; }
-
-        buf = buf.slice(r1, r2);
-        SIZE = buf.length;
-        let c = new Array(SIZE).fill(0);
-        for (let i = 0; i < SIZE; i++)
-            for (let j = 0; j < SIZE - i; j++)
-                c[i] = c[i] + buf[j] * buf[j + i];
-
-        let d = 0; while (c[d] > c[d + 1]) d++;
-        let maxval = -1, maxpos = -1;
-        for (let i = d; i < SIZE; i++) {
-            if (c[i] > maxval) { maxval = c[i]; maxpos = i; }
-        }
-        let T0 = maxpos;
-        return sampleRate / T0;
-    }
+    // Inicia a tela
+    atualizarHeader();
+    renderizarCabaca();
 </script>
 
 </body>
-    </html>
+                             </html>
             
