@@ -3,63 +3,67 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Berimbau SheetMusic Studio</title>
+    <title>Berimbau Notation Studio 3.0</title>
     <script src="https://cdnjs.cloudflare.com/ajax/libs/html2canvas/1.4.1/html2canvas.min.js"></script>
     <style>
         :root { --bg: #121212; --panel: #1e1e2e; --accent: #ff9f43; --text: #eee; }
-        body { background: var(--bg); color: var(--text); font-family: sans-serif; display: flex; flex-direction: column; margin: 0; height: 100vh; }
+        body { background: var(--bg); color: var(--text); font-family: sans-serif; display: flex; flex-direction: column; margin: 0; height: 100vh; overflow: hidden; }
         
-        /* Layout Mobile: Partitura em cima, Controles embaixo */
-        #editor-container { flex: 1; padding: 20px; overflow-x: auto; background: #080808; display: flex; align-items: center; }
-        #toolbar { background: var(--panel); padding: 15px; overflow-y: auto; max-height: 50vh; border-top: 2px solid #333; }
+        /* Área de Edição com Rolagem Horizontal Infinita */
+        #editor-container { flex: 1; padding: 15px; overflow-x: auto; overflow-y: hidden; background: #080808; display: flex; align-items: center; white-space: nowrap; }
+        #toolbar { background: var(--panel); padding: 15px; overflow-y: auto; max-height: 45vh; border-top: 2px solid #333; box-sizing: border-box; }
         
-        /* A Partitura (Folha Branca) */
-        .sheet-wrapper { background: #fff; color: #000; padding: 40px 20px; border-radius: 8px; position: relative; min-width: 900px; display: inline-block; box-shadow: 0 4px 10px rgba(0,0,0,0.5); }
-        .sheet-header { display: flex; justify-content: space-between; font-weight: bold; margin-bottom: 30px; border-bottom: 2px solid #ccc; padding-bottom: 10px; }
+        /* Wrapper da Folha de Partitura */
+        .sheet-wrapper { background: #fff; color: #000; padding: 30px 20px 50px 20px; border-radius: 8px; position: relative; display: inline-flex; flex-direction: column; box-shadow: 0 4px 10px rgba(0,0,0,0.5); min-height: 220px; vertical-align: middle; }
+        .sheet-header { display: flex; gap: 30px; font-weight: bold; margin-bottom: 20px; font-size: 14px; border-bottom: 2px solid #ccc; padding-bottom: 5px; }
         
-        /* Linhas da Pauta e Cabaça */
-        .pauta-area { position: relative; height: 120px; margin-left: 100px; display: flex; align-items: center; }
-        .stave-lines { position: absolute; width: 100%; height: 60px; display: flex; flex-direction: column; justify-content: space-between; z-index: 1; }
-        .line { height: 2px; background: #000; width: 100%; }
+        /* Estrutura da Pauta */
+        .pauta-area { position: relative; height: 120px; display: inline-flex; align-items: center; padding-left: 90px; }
+        .stave-lines { position: absolute; left: 90px; right: 0; height: 60px; display: flex; flex-direction: column; justify-content: space-between; z-index: 1; }
+        .line { height: 2px; background: #000; }
         
-        .cabaca-container { position: absolute; left: -80px; top: 15px; width: 60px; height: 90px; z-index: 2; }
+        .cabaca-container { position: absolute; left: 10px; top: 10px; width: 55px; height: 85px; z-index: 2; }
+        .legend-num { position: absolute; left: 70px; top: 12px; height: 60px; display: flex; flex-direction: column; justify-content: space-between; font-weight: bold; font-size: 12px; z-index: 2; }
         
-        /* Legenda Esquerda (1 a 5) */
-        .legend-num { position: absolute; left: -100px; top: 0; height: 100%; display: flex; flex-direction: column; justify-content: space-between; font-weight: bold; font-size: 14px; padding: 10px 0;}
+        /* Trilho de Notas */
+        .notes-track { display: flex; align-items: flex-start; z-index: 3; height: 100%; position: relative; }
+        .note-wrapper { position: relative; display: flex; flex-direction: column; align-items: center; cursor: pointer; width: 50px; height: 150px; }
+        .note-svg { width: 50px; height: 90px; overflow: visible; }
         
-        /* Trilho das Notas */
-        .notes-track { position: absolute; left: 0; top: 0; display: flex; align-items: flex-start; z-index: 3; height: 100%; }
+        /* Linhas e Marcas de Força (Volumes 1-6) */
+        .volume-indicator { position: absolute; bottom: 5px; font-weight: bold; font-size: 13px; color: #000; background: #fff; padding: 0 2px; z-index: 5; }
+        .volume-line { position: absolute; bottom: 12px; height: 2px; background: #999; border-dasharray: 2px; width: 50px; z-index: 1; }
+        .abafado-mark { position: absolute; top: -5px; font-weight: bold; color: #d32f2f; font-size: 12px; }
         
-        .note-wrapper { position: relative; display: flex; flex-direction: column; align-items: center; cursor: pointer; width: 45px; margin-right: 5px; }
-        .note-wrapper:hover { background: rgba(0,0,0,0.05); }
-        .note-svg { width: 40px; height: 90px; overflow: visible; }
+        /* Divisores de Compasso */
+        .bar-line { width: 2px; background: #000; height: 60px; margin-top: 15px; margin-left: 10px; margin-right: 10px; display: inline-block; position: relative; }
+        .final-bar-line { width: 7px; border-left: 2px solid #000; border-right: 4px solid #000; height: 60px; margin-top: 15px; margin-left: 10px; margin-right: 10px; display: inline-block; }
         
-        /* Barras de Compasso */
-        .bar-line { width: 2px; background: #000; height: 60px; margin: 30px 10px 0 10px; }
-        .final-bar-line { width: 6px; border-left: 2px solid #000; border-right: 4px solid #000; height: 60px; margin: 30px 10px 0 10px; }
-        
-        /* UI de Controles */
-        .grid-2 { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; }
-        .btn { background: #333; color: white; border: 1px solid #555; padding: 10px; border-radius: 5px; cursor: pointer; font-weight: bold; }
+        /* Elementos de Interface do Painel */
+        .grid-2 { display: grid; grid-template-columns: 1fr 1fr; gap: 8px; }
+        .grid-5 { display: grid; grid-template-columns: repeat(5, 1fr); gap: 4px; }
+        .btn { background: #333; color: white; border: 1px solid #555; padding: 8px; border-radius: 5px; cursor: pointer; font-weight: bold; font-size: 13px; }
         .btn.active { background: var(--accent); color: black; border-color: var(--accent); }
-        .btn-play { background: #4caf50; color: white; border: none; padding: 15px; font-size: 16px; width: 100%; margin: 10px 0; }
-        .btn-action { background: #007bff; color: white; border: none; padding: 10px; width: 100%; margin-top: 5px; }
+        .btn-play { background: #4caf50; color: white; border: none; padding: 12px; font-size: 15px; width: 100%; margin-bottom: 10px; font-weight: bold; border-radius: 5px; }
+        .btn-action { background: #007bff; color: white; border: none; padding: 8px; width: 100%; margin-top: 4px; border-radius: 4px; font-weight: bold; }
         
-        select, input { padding: 8px; background: #222; color: #fff; border: 1px solid #444; width: 100%; box-sizing: border-box; }
-        .config-box { background: #2a2a35; padding: 10px; border-radius: 5px; margin-bottom: 10px; }
-        label { font-size: 0.8em; color: #aaa; display: block; margin-bottom: 5px; }
+        select { padding: 6px; background: #222; color: #fff; border: 1px solid #444; width: 100%; border-radius: 4px; }
+        .config-box { background: #2a2a35; padding: 10px; border-radius: 5px; margin-bottom: 8px; }
+        label { font-size: 0.8em; color: #aaa; display: block; margin-bottom: 4px; }
         
-        /* Conexão Colcheias (Beam) */
-        .beam { position: absolute; background: black; height: 4px; top: 18px; right: -25px; width: 30px; z-index: 4; }
+        /* Área oculta usada apenas para montar a foto empilhada para baixar */
+        #export-stave-render { background: #fff; color: #000; padding: 30px; display: none; width: 800px; }
+        .export-row { position: relative; height: 140px; margin-bottom: 40px; display: flex; align-items: center; border-bottom: 1px dashed #ccc; }
+        .export-legend-block { font-size: 12px; font-family: monospace; line-height: 1.4; background: #f5f5f5; padding: 10px; border: 1px solid #ddd; margin-top: 20px; }
     </style>
 </head>
 <body>
 
 <svg width="0" height="0" style="display:none;">
     <defs>
-        <pattern id="pat-chiado" width="8" height="8" patternUnits="userSpaceOnUse" patternTransform="rotate(45)">
-            <rect width="4" height="8" fill="black" />
-            <rect x="4" width="4" height="8" fill="white" />
+        <pattern id="pat-chiado" width="6" height="6" patternUnits="userSpaceOnUse" patternTransform="rotate(45)">
+            <rect width="3" height="6" fill="black" />
+            <rect x="3" width="3" height="6" fill="white" />
         </pattern>
         <linearGradient id="pat-soltachiado" x1="0%" y1="0%" x2="100%" y2="0%">
             <stop offset="50%" stop-color="white"/>
@@ -69,19 +73,17 @@
 </svg>
 
 <div id="editor-container">
-    <div class="sheet-wrapper" id="partitura-export">
+    <div class="sheet-wrapper" id="view-sheet-wrapper">
         <div class="sheet-header">
-            <span id="lbl-bpm">BPM: 120 (Semínima)</span>
-            <span id="lbl-comp">Compasso: 4/4</span>
+            <span>Ritmo: Berimbau Studio</span>
+            <span>Compasso: 4/4</span>
         </div>
         
         <div class="pauta-area">
-            <div class="legend-num">
-                <span>5</span><span>4</span><span>3</span><span>2</span><span>1</span>
-            </div>
+            <div class="legend-num"><span>5</span><span>4</span><span>3</span><span>2</span><span>1</span></div>
             <div class="cabaca-container" id="view-cabaca"></div>
             
-            <div class="stave-lines">
+            <div class="stave-lines" id="view-stave-lines">
                 <div class="line"></div>
                 <div class="line"></div>
                 <div class="line"></div>
@@ -92,46 +94,65 @@
     </div>
 </div>
 
+<div id="export-stave-render"></div>
+
 <div id="toolbar">
-    <button class="btn-play" onclick="tocarPartitura()">▶ TOCAR PARTITURA</button>
+    <button class="btn-play" onclick="tocarPartitura()">▶ TOCAR COMPOSIÇÃO</button>
 
     <div class="config-box">
-        <h4>1. Selecione a Duração (Fica salvo)</h4>
-        <div class="grid-2" id="btn-valores">
-            <button class="btn active" onclick="setValor(1, this)">Semínima (1)</button>
-            <button class="btn" onclick="setValor(2, this)">Mínima (2)</button>
-            <button class="btn" onclick="setValor(0.5, this)">Colcheia (1/2)</button>
-            <button class="btn" onclick="setValor(0.25, this)">Semicolcheia (1/4)</button>
-            <button class="btn" onclick="setValor('pausa', this)">Pausa (/)</button>
-        </div>
-    </div>
-
-    <div class="config-box">
-        <h4>2. Toque no Som para Adicionar</h4>
         <div class="grid-2">
-            <button class="btn" style="border-left: 5px solid black;" onclick="addNota('presa')">+ Presa</button>
-            <button class="btn" style="border-left: 5px solid white;" onclick="addNota('solta')">+ Solta</button>
-            <button class="btn" style="border-left: 5px solid gray;" onclick="addNota('chiado')">+ Chiado</button>
-            <button class="btn" style="border-left: 5px solid black;" onclick="addNota('acaxixi')">+ Acaxixi</button>
-            <button class="btn" style="border-left: 5px solid gray;" onclick="addNota('soltachiado')">+ Solta+Chiado</button>
+            <div>
+                <label>Duração da Nota</label>
+                <div class="grid-2" id="btn-valores" style="grid-template-columns: 1fr;">
+                    <button class="btn active" onclick="setValor(1, false, this)">Semínima (1)</button>
+                    <button class="btn" onclick="setValor(2, false, this)">Mínima (2)</button>
+                    <button class="btn" onclick="setValor(0.5, false, this)">Colcheia (1/2)</button>
+                    <button class="btn" onclick="setValor(0.25, false, this)">Semicolcheia (1/4)</button>
+                    <button class="btn" onclick="setValor(1, true, this)">Pausa (/)</button>
+                </div>
+            </div>
+            <div>
+                <label>Modificadores Especiais</label>
+                <button class="btn" id="btn-abafado" style="width:100%; margin-bottom:8px; background:#444;" onclick="toggleAbafado()">Abafado: DESLIGADO</button>
+                
+                <label>Adicionar Força Dinâmica (1-6)</label>
+                <div class="grid-5">
+                    <button class="btn btn-f" onclick="setForcaMarcador(1, this)">1</button>
+                    <button class="btn btn-f" onclick="setForcaMarcador(2, this)">2</button>
+                    <button class="btn btn-f active" onclick="setForcaMarcador(3, this)">3</button>
+                    <button class="btn btn-f" onclick="setForcaMarcador(4, this)">4</button>
+                    <button class="btn btn-f" onclick="setForcaMarcador(5, this)">5</button>
+                </div>
+            </div>
         </div>
     </div>
 
     <div class="config-box">
-        <h4>Configurar Posições (1 a 5)</h4>
-        <div class="grid-2">
-            <div><label>Linha 5 (Alta)</label><select id="map-5"><option value="chiado">Chiado</option><option value="solta">Solta</option><option value="presa">Presa</option><option value="acaxixi">Acaxixi</option><option value="soltachiado">Solta+Chiado</option></select></div>
-            <div><label>Espaço 4</label><select id="map-4"><option value="soltachiado">Solta+Chiado</option><option value="solta">Solta</option><option value="presa">Presa</option><option value="chiado">Chiado</option><option value="acaxixi">Acaxixi</option></select></div>
-            <div><label>Linha 3 (Meio)</label><select id="map-3"><option value="solta" selected>Solta</option><option value="presa">Presa</option><option value="chiado">Chiado</option><option value="acaxixi">Acaxixi</option><option value="soltachiado">Solta+Chiado</option></select></div>
-            <div><label>Espaço 2</label><select id="map-2"><option value="acaxixi">Acaxixi</option><option value="solta">Solta</option><option value="presa">Presa</option><option value="chiado">Chiado</option><option value="soltachiado">Solta+Chiado</option></select></div>
-            <div><label>Linha 1 (Baixa)</label><select id="map-1"><option value="presa" selected>Presa</option><option value="solta">Solta</option><option value="chiado">Chiado</option><option value="acaxixi">Acaxixi</option><option value="soltachiado">Solta+Chiado</option></select></div>
+        <label>Clique para inserir na pauta:</label>
+        <div class="grid-5">
+            <button class="btn" style="background:#000;" onclick="addNota('presa')">Presa</button>
+            <button class="btn" style="background:#fff; color:#000;" onclick="addNota('solta')">Solta</button>
+            <button class="btn" style="background:gray;" onclick="addNota('chiado')">Chiado</button>
+            <button class="btn" style="background:#333;" onclick="addNota('acaxixi')">Caxixi</button>
+            <button class="btn" style="background:linear-gradient(90deg, #fff 50%, #000 50%); color:red;" onclick="addNota('soltachiado')">S+C</button>
         </div>
     </div>
 
-    <div class="grid-2" style="margin-top: 15px;">
-        <button class="btn-action" style="background:#28a745;" onclick="salvarPartitura()">💾 Salvar</button>
-        <button class="btn-action" style="background:#17a2b8;" onclick="carregarPartitura()">📂 Carregar</button>
-        <button class="btn-action" style="background:#dc3545; grid-column: span 2;" onclick="baixarImagem()">📸 Baixar como Imagem</button>
+    <div class="config-box">
+        <label>Mapeamento das Linhas/Espaços (1 a 5)</label>
+        <div class="grid-5">
+            <div><label>Linha 5</label><select id="map-5"><option value="chiado" selected>Chiado</option><option value="solta">Solta</option><option value="presa">Presa</option><option value="acaxixi">Caxixi</option><option value="soltachiado">S+C</option></select></div>
+            <div><label>Espaço 4</label><select id="map-4"><option value="soltachiado" selected>S+C</option><option value="solta">Solta</option><option value="presa">Presa</option><option value="chiado">Chiado</option><option value="acaxixi">Caxixi</option></select></div>
+            <div><label>Linha 3</label><select id="map-3"><option value="solta" selected>Solta</option><option value="presa">Presa</option><option value="chiado">Chiado</option><option value="acaxixi">Caxixi</option><option value="soltachiado">S+C</option></select></div>
+            <div><label>Espaço 2</label><select id="map-2"><option value="acaxixi" selected>Caxixi</option><option value="solta">Solta</option><option value="presa">Presa</option><option value="chiado">Chiado</option><option value="soltachiado">S+C</option></select></div>
+            <div><label>Linha 1</label><select id="map-1"><option value="presa" selected>Presa</option><option value="solta">Solta</option><option value="chiado">Chiado</option><option value="acaxixi">Caxixi</option><option value="soltachiado">S+C</option></select></div>
+        </div>
+    </div>
+
+    <div class="grid-2">
+        <button class="btn-action" style="background:#28a745;" onclick="salvarPartitura()">💾 Salvar Composição</button>
+        <button class="btn-action" style="background:#17a2b8;" onclick="carregarPartitura()">📂 Carregar Antiga</button>
+        <button class="btn-action" style="background:#e056fd; grid-column: span 2;" onclick="baixarImagemOtimizada()">📸 Baixar como Imagem (Quebra de Linhas + Legenda)</button>
         <button class="btn-action" style="background:#6c757d; grid-column: span 2;" onclick="limparTudo()">🗑 Limpar Tudo</button>
     </div>
 </div>
@@ -140,43 +161,136 @@
     let partitura = [];
     let valorAtual = 1;
     let isPausa = false;
+    let abafadoAtivo = false;
+    let forcaMarcadorAtual = 3;
+    let somAtual = null;
 
-    // Configuração de Cabaça Padrão Gunga para o visual
-    function renderCabaça() {
-        document.getElementById('view-cabaca').innerHTML = `<svg viewBox="0 0 100 100"><circle cx="50" cy="50" r="45" fill="white" stroke="black" stroke-width="4"/><path d="M50,50 L5,50 A45,45 0 1,1 50,95 Z" fill="black"/></svg>`;
+    function renderCabaça(targetId) {
+        document.getElementById(targetId).innerHTML = `<svg viewBox="0 0 100 100"><circle cx="50" cy="50" r="42" fill="white" stroke="black" stroke-width="5"/><path d="M50,50 L8,50 A42,42 0 1,1 50,92 Z" fill="black"/></svg>`;
     }
 
-    function setValor(val, btnRef) {
-        if (val === 'pausa') { isPausa = true; valorAtual = 1; }
-        else { isPausa = false; valorAtual = parseFloat(val); }
-        
+    function setValor(val, pausa, btnRef) {
+        isPausa = pausa;
+        valorAtual = parseFloat(val);
         document.querySelectorAll('#btn-valores .btn').forEach(b => b.classList.remove('active'));
+        btnRef.classList.add('active');
+    }
+
+    function toggleAbafado() {
+        abafadoAtivo = !abafadoAtivo;
+        const btn = document.getElementById('btn-abafado');
+        if(abafadoAtivo) { btn.innerText = "Abafado: LIGADO (X)"; btn.style.background = "#d32f2f"; }
+        else { btn.innerText = "Abafado: DESLIGADO"; btn.style.background = "#444"; }
+    }
+
+    function setForcaMarcador(num, btnRef) {
+        forcaMarcadorAtual = num;
+        document.querySelectorAll('.btn-f').forEach(b => b.classList.remove('active'));
         btnRef.classList.add('active');
     }
 
     function getPosicaoByTecnica(tecnica) {
         for(let i=1; i<=5; i++) {
-            if(document.getElementById(`map-${i}`).value === tecnica) return `pos-${i}`;
+            if(document.getElementById(`map-${i}`).value === tecnica) return i;
         }
-        return 'pos-3'; // Padrão se não achar
+        return 3;
     }
 
     function addNota(tecnica) {
+        // Verifica se mudou a força em relação à nota anterior para criar o marcador visual
+        let exigeNumeroMarcador = false;
+        if(partitura.length === 0 || partitura[partitura.length-1].forcaOriginal !== forcaMarcadorAtual) {
+            exigeNumeroMarcador = true;
+        }
+
         partitura.push({
             id: Date.now(),
             tecnica: tecnica,
             valor: valorAtual,
-            posicao: getPosicaoByTecnica(tecnica),
-            isPausa: isPausa
+            linhaPos: getPosicaoByTecnica(tecnica),
+            isPausa: isPausa,
+            abafado: abafadoAtivo,
+            forcaOriginal: forcaMarcadorAtual,
+            mostraNumero: exigeNumeroMarcador
         });
+
         renderizar();
+        
+        // Auto-rolagem para acompanhar a nota inserida
+        setTimeout(() => {
+            const container = document.getElementById('editor-container');
+            container.scrollLeft = container.scrollWidth;
+        }, 50);
     }
 
-    function removerNota(id) {
-        if(confirm("Deseja apagar esta nota?")) {
+    function removerOuEditarNota(id) {
+        const opcao = confirm("Clique OK para APAGAR a nota ou Cancelar para manter.");
+        if(opcao) {
             partitura = partitura.filter(n => n.id !== id);
+            // Recalcula marcadores numéricos para a linha contínua fazer sentido
+            for(let i=0; i<partitura.length; i++) {
+                if(i===0) partitura[i].mostraNumero = true;
+                else partitura[i].mostraNumero = (partitura[i].forcaOriginal !== partitura[i-1].forcaOriginal);
+            }
             renderizar();
         }
+    }
+
+    // Função central que gera os elementos visuais das notas
+    function criarElementoNota(n, index, arr) {
+        let fill = "white";
+        if(n.tecnica === 'presa') fill = "black";
+        if(n.tecnica === 'chiado') fill = "url(#pat-chiado)";
+        if(n.tecnica === 'soltachiado') fill = "url(#pat-soltachiado)";
+
+        let innerSVG = '';
+        
+        if (n.isPausa) {
+            innerSVG = `<text x="12" y="55" font-size="38" fill="#d32f2f" font-weight="bold">/</text>`;
+        } else {
+            // Desenho do corpo oval da nota
+            innerSVG += `<ellipse cx="18" cy="65" rx="9" ry="6" fill="${fill}" stroke="black" stroke-width="2"/>`;
+
+            // Marca de Caxixi interna
+            if (n.tecnica === 'acaxixi') innerSVG += `<circle cx="18" cy="65" r="3" fill="black"/>`;
+
+            // Haste vertical
+            if (n.valor <= 2) innerSVG += `<line x1="27" y1="65" x2="27" y2="15" stroke="black" stroke-width="2"/>`;
+
+            // Ligação de hastes entre colcheias seguidas (Beam)
+            let hasBeam = false;
+            if (n.valor <= 0.5 && index < arr.length - 1 && arr[index+1].valor <= 0.5 && !arr[index+1].isPausa) {
+                innerSVG += `<rect x="27" y="15" width="50" height="4" fill="black" />`;
+                hasBeam = true;
+            }
+            
+            // Colchetes individuais livres
+            if (n.valor <= 0.5 && !hasBeam) innerSVG += `<path d="M27,15 Q37,25 37,38" fill="none" stroke="black" stroke-width="2"/>`;
+            if (n.valor <= 0.25 && !hasBeam) innerSVG += `<path d="M27,23 Q37,33 37,46" fill="none" stroke="black" stroke-width="2"/>`;
+        }
+
+        // Posicionamento vertical milimétrico baseado na linha/espaço
+        let mTop = 45 - (n.linhaPos - 1) * 12;
+
+        const div = document.createElement('div');
+        div.className = 'note-wrapper';
+        div.style.marginTop = `${mTop}px`;
+        
+        let htmlExtra = `<svg class="note-svg">${innerSVG}</svg>`;
+        
+        if(n.abafado && !n.isPausa) {
+            htmlExtra += `<span class="abafado-mark">X</span>`;
+        }
+
+        // Sistema de Numeração de Dinâmica + Linha guia contínua
+        if(n.mostraNumero) {
+            htmlExtra += `<span class="volume-indicator">${n.forcaOriginal}</span>`;
+        } else {
+            htmlExtra += `<div class="volume-line"></div>`;
+        }
+
+        div.innerHTML = htmlExtra;
+        return div;
     }
 
     function renderizar() {
@@ -184,66 +298,18 @@
         container.innerHTML = '';
         
         let somaCompasso = 0;
-        const compassoMax = 4; // 4 tempos padrão
+        const maxCompasso = 4;
 
         for(let i = 0; i < partitura.length; i++) {
             const n = partitura[i];
-            
-            // Lógica Visual do Preenchimento
-            let fill = "white";
-            if(n.tecnica === 'presa') fill = "black";
-            if(n.tecnica === 'chiado') fill = "url(#pat-chiado)";
-            if(n.tecnica === 'soltachiado') fill = "url(#pat-soltachiado)";
-
-            let innerSVG = '';
-            
-            if (n.isPausa) {
-                innerSVG = `<text x="10" y="60" font-size="40" fill="red" font-weight="bold">/</text>`;
-            } else {
-                // Corpo da nota
-                if (n.valor >= 2) {
-                    innerSVG += `<ellipse cx="15" cy="70" rx="10" ry="7" fill="${fill}" stroke="black" stroke-width="2"/>`;
-                } else {
-                    innerSVG += `<ellipse cx="15" cy="70" rx="10" ry="7" fill="${fill}" stroke="black" stroke-width="2"/>`;
-                }
-
-                // Detalhe Acaxixi
-                if (n.tecnica === 'acaxixi') innerSVG += `<circle cx="15" cy="70" r="4" fill="black"/>`;
-
-                // Haste
-                if (n.valor <= 2) innerSVG += `<line x1="25" y1="70" x2="25" y2="10" stroke="black" stroke-width="2"/>`;
-
-                // Conexão (Juntar Colcheias - Simplificado)
-                let hasBeam = false;
-                if (n.valor <= 0.5 && i < partitura.length - 1 && partitura[i+1].valor <= 0.5 && !partitura[i+1].isPausa) {
-                    innerSVG += `<rect x="25" y="10" width="45" height="4" fill="black" />`;
-                    hasBeam = true;
-                }
-                
-                // Colchete final se não tiver conexão
-                if (n.valor <= 0.5 && !hasBeam) innerSVG += `<path d="M25,10 Q35,20 35,35" fill="none" stroke="black" stroke-width="2"/>`;
-                if (n.valor <= 0.25 && !hasBeam) innerSVG += `<path d="M25,20 Q35,30 35,45" fill="none" stroke="black" stroke-width="2"/>`;
-            }
-
-            // Margin top baseado na posição (1 a 5)
-            let mTop = 0;
-            if(n.posicao === 'pos-5') mTop = -10;
-            if(n.posicao === 'pos-4') mTop = 5;
-            if(n.posicao === 'pos-3') mTop = 20;
-            if(n.posicao === 'pos-2') mTop = 35;
-            if(n.posicao === 'pos-1') mTop = 50;
-
-            const div = document.createElement('div');
-            div.className = `note-wrapper`;
-            div.style.marginTop = `${mTop}px`;
-            div.onclick = () => removerNota(n.id);
-            div.innerHTML = `<svg class="note-svg">${innerSVG}</svg>`;
-            container.appendChild(div);
+            const divNota = criarElementoNota(n, i, partitura);
+            divNota.onclick = () => removerOuEditarNota(n.id);
+            container.appendChild(divNota);
 
             somaCompasso += n.valor;
 
-            // Fechamento de Compasso (Linha vertical)
-            if(somaCompasso >= compassoMax && i !== partitura.length - 1) {
+            // Insere barra vertical de compasso ao atingir 4 tempos
+            if(somaCompasso >= maxCompasso && i !== partitura.length - 1) {
                 const bar = document.createElement('div');
                 bar.className = 'bar-line';
                 container.appendChild(bar);
@@ -251,66 +317,176 @@
             }
         }
 
-        // Linha Final da Música
         if(partitura.length > 0) {
             const endBar = document.createElement('div');
             endBar.className = 'final-bar-line';
             container.appendChild(endBar);
         }
+
+        // Ajusta o tamanho da linha de fundo da pauta para cobrir tudo
+        const larguraTrilho = container.offsetWidth + 200;
+        document.getElementById('view-stave-lines').style.width = `${larguraTrilho}px`;
+        document.getElementById('view-sheet-wrapper').style.width = `${larguraTrilho}px`;
+        renderCabaça('view-cabaca');
     }
 
     async function tocarPartitura() {
         const bpm = 120;
-        const tempoBase = 60 / bpm; 
+        const tempoBase = 60 / bpm;
         
+        if(somAtual) { somAtual.pause(); somAtual = null; }
+
         for (let i = 0; i < partitura.length; i++) {
             const n = partitura[i];
             const tempoMs = (tempoBase * n.valor) * 1000;
-            let som = null;
 
             if (!n.isPausa) {
                 try {
-                    som = new Audio(`${n.tecnica}.mp3`);
-                    som.play();
-                } catch (e) {}
+                    // Interrompe o áudio anterior imediatamente para simular a nova batida cortando a corda
+                    if (somAtual) { somAtual.pause(); }
+
+                    somAtual = new Audio(`${n.tecnica}.mp3`);
+                    
+                    // Cálculo Matemático do Abafado solicitado
+                    let forcaFinal = n.forcaOriginal;
+                    if(n.abafado) {
+                        if(n.forcaOriginal === 1) forcaFinal = 0.5;
+                        else forcaFinal = n.forcaOriginal - 1;
+                    }
+
+                    somAtual.volume = forcaFinal / 6;
+                    somAtual.play();
+                } catch (e) { console.log(e); }
+            } else {
+                if (somAtual) { somAtual.pause(); somAtual = null; }
             }
 
-            // O SISTEMA ESPERA O TEMPO DA NOTA PASSAR
             await new Promise(r => setTimeout(r, tempoMs));
-
-            // CORTA O ÁUDIO PARA NÃO SOBREPOR NOTAS PEQUENAS (Ex: 1/16)
-            if(som) {
-                som.pause();
-                som.currentTime = 0;
-            }
         }
     }
 
-    function salvarPartitura() {
-        localStorage.setItem('berimbau_save', JSON.stringify(partitura));
-        alert("Salvo com sucesso!");
-    }
+    // Geração Inteligente Multi-linha estruturada para a Imagem de Download
+    function baixarImagemOtimizada() {
+        if(partitura.length === 0) { alert("Adicione notas primeiro!"); return; }
+        
+        const areaExport = document.getElementById('export-stave-render');
+        areaExport.innerHTML = '';
+        areaExport.style.display = 'block';
 
-    function carregarPartitura() {
-        const data = localStorage.getItem('berimbau_save');
-        if(data) { partitura = JSON.parse(data); renderizar(); }
-    }
+        // Cabeçalho da folha de exportação
+        const header = document.createElement('div');
+        header.style.textAlign = 'center';
+        header.style.fontWeight = 'bold';
+        header.style.fontSize = '20px';
+        header.style.marginBottom = '20px';
+        header.innerText = "ESTÚDIO DE NOTAÇÃO DE BERIMBAU";
+        areaExport.appendChild(header);
 
-    function limparTudo() { partitura = []; renderizar(); }
+        let rowDiv = null;
+        let trackDiv = null;
+        let staveLinesDiv = null;
+        let somaCompasso = 0;
+        let indexLinha = 1;
 
-    function baixarImagem() {
-        alert("Gerando imagem... Aguarde um instante.");
-        html2canvas(document.getElementById("partitura-export")).then(canvas => {
+        function novaLinhaExport() {
+            rowDiv = document.createElement('div');
+            rowDiv.className = 'export-row';
+            
+           // Números laterais da linha
+            const leg = document.createElement('div');
+            leg.className = 'legend-num';
+            leg.style.left = '10px';
+            leg.innerHTML = `<span>5</span><span>4</span><span>3</span><span>2</span><span>1</span>`;
+            rowDiv.appendChild(leg);
+
+            // Desenha pauta preta de fundo
+            staveLinesDiv = document.createElement('div');
+            staveLinesDiv.className = 'stave-lines';
+            staveLinesDiv.style.left = '35px';
+            staveLinesDiv.style.width = '740px';
+            staveLinesDiv.innerHTML = `<div class="line"></div><div class="line"></div><div class="line"></div>`;
+            rowDiv.appendChild(staveLinesDiv);
+
+            trackDiv = document.createElement('div');
+            trackDiv.className = 'notes-track';
+            trackDiv.style.paddingLeft = '45px';
+            rowDiv.appendChild(trackDiv);
+
+            areaExport.appendChild(rowDiv);
+            indexLinha++;
+        }
+
+        novaLinhaExport();
+
+        // Agrupa os elementos quebrando a linha a cada 4 compassos inteiros
+        for(let i=0; i<partitura.length; i++) {
+            const n = partitura[i];
+            const divNota = criarElementoNota(n, i, partitura);
+            trackDiv.appendChild(divNota);
+
+            somaCompasso += n.valor;
+
+            if(somaCompasso >= 4 && i !== partitura.length - 1) {
+                somaCompasso = 0;
+                // Quebra de linha a cada 4 compassos para caber na folha
+                if(indexLinha % 2 === 0) { 
+                    const bar = document.createElement('div');
+                    bar.className = 'bar-line';
+                    trackDiv.appendChild(bar);
+                    novaLinhaExport();
+                } else {
+                    const bar = document.createElement('div');
+                    bar.className = 'bar-line';
+                    trackDiv.appendChild(bar);
+                }
+            }
+        }
+
+        const endBar = document.createElement('div');
+        endBar.className = 'final-bar-line';
+        trackDiv.appendChild(endBar);
+
+        // Bloco de Legenda dinâmica no rodapé do papel impresso
+        const legendaBlock = document.createElement('div');
+        legendaBlock.className = 'export-legend-block';
+        legendaBlock.innerHTML = `
+            <strong>LEGENDA DE MAPEAMENTO DAS LINHAS DO BERIMBAU:</strong><br>
+            Linha 5 (Mais Alta): ${document.getElementById('map-5').value.toUpperCase()}<br>
+            Espaço 4: ${document.getElementById('map-4').value.toUpperCase()}<br>
+            Linha 3 (Meio): ${document.getElementById('map-3').value.toUpperCase()}<br>
+            Espaço 2: ${document.getElementById('map-2').value.toUpperCase()}<br>
+            Linha 1 (Mais Baixa): ${document.getElementById('map-1').value.toUpperCase()}<br>
+            <small>* Marcadores numéricos inferiores representam a Força/Volume do Toque. Letra X superior representa som Abafado.</small>
+        `;
+        areaExport.appendChild(legendaBlock);
+
+        // Renderiza o HTML invisível em uma imagem PNG real para salvar no celular
+        html2canvas(areaExport, {backgroundColor: '#ffffff'}).then(canvas => {
             let link = document.createElement('a');
-            link.download = 'minha-partitura.png';
+            link.download = 'partitura-berimbau-completa.png';
             link.href = canvas.toDataURL();
             link.click();
+            areaExport.style.display = 'none';
         });
     }
 
-    renderCabaça();
+    function salvarPartitura() {
+        localStorage.setItem('berimbau_save_v3', JSON.stringify(partitura));
+        alert("Composição salva no seu celular!");
+    }
+
+    function carregarPartitura() {
+        const data = localStorage.getItem('berimbau_save_v3');
+        if(data) { partitura = JSON.parse(data); renderizar(); }
+        else { alert("Nenhum registro encontrado."); }
+    }
+
+    function limparTudo() {
+        partitura = [];
+        renderizar();
+    }
+
+    renderCabaça('view-cabaca');
 </script>
 </body>
 </html>
-                                                                                                            </html>
-                
