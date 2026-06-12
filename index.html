@@ -2,341 +2,315 @@
 <html lang="pt-BR">
 <head>
     <meta charset="UTF-8">
-    <title>Berimbau Notation Studio Pro</title>
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Berimbau SheetMusic Studio</title>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/html2canvas/1.4.1/html2canvas.min.js"></script>
     <style>
-        :root {
-            --bg: #121212; --panel: #1e1e2e; --accent: #ff9f43; --text: #eee;
-        }
-        body { background: var(--bg); color: var(--text); font-family: 'Segoe UI', sans-serif; display: flex; margin: 0; height: 100vh; overflow: hidden; }
+        :root { --bg: #121212; --panel: #1e1e2e; --accent: #ff9f43; --text: #eee; }
+        body { background: var(--bg); color: var(--text); font-family: sans-serif; display: flex; flex-direction: column; margin: 0; height: 100vh; }
         
-        /* Sidebar Esquerda (Ferramentas) */
-        #toolbar { width: 320px; background: var(--panel); padding: 20px; overflow-y: auto; border-right: 2px solid #333; box-sizing: border-box; }
-        h3 { color: var(--accent); margin-top: 0; }
-        label { display: block; margin-top: 10px; font-size: 0.9em; color: #aaa; }
-        select, input { width: 100%; padding: 8px; margin-top: 5px; background: #333; color: white; border: 1px solid #555; border-radius: 4px; }
-        .row { display: flex; gap: 10px; }
-        .btn { background: var(--accent); border: none; padding: 12px; width: 100%; margin-top: 15px; cursor: pointer; border-radius: 4px; color: #000; font-weight: bold; font-size: 1em; transition: 0.2s; }
-        .btn:hover { filter: brightness(1.2); }
-        .btn-play { background: #4caf50; color: white; }
+        /* Layout Mobile: Partitura em cima, Controles embaixo */
+        #editor-container { flex: 1; padding: 20px; overflow-x: auto; background: #080808; display: flex; align-items: center; }
+        #toolbar { background: var(--panel); padding: 15px; overflow-y: auto; max-height: 50vh; border-top: 2px solid #333; }
         
-        /* Área Principal (Partitura) */
-        #editor-container { flex-grow: 1; padding: 40px; overflow-x: auto; background: #080808; display: flex; flex-direction: column; }
+        /* A Partitura (Folha Branca) */
+        .sheet-wrapper { background: #fff; color: #000; padding: 40px 20px; border-radius: 8px; position: relative; min-width: 900px; display: inline-block; box-shadow: 0 4px 10px rgba(0,0,0,0.5); }
+        .sheet-header { display: flex; justify-content: space-between; font-weight: bold; margin-bottom: 30px; border-bottom: 2px solid #ccc; padding-bottom: 10px; }
         
-        /* Header da Partitura (BPM, Força, etc) */
-        #score-header { display: flex; justify-content: space-between; margin-bottom: 20px; font-size: 1.2em; font-weight: bold; min-width: 800px; }
-        
-        /* Partitura Visual */
-        .sheet { background: #fff; color: #000; padding: 40px; min-width: 1000px; border-radius: 8px; position: relative; height: 250px; box-shadow: 0 4px 15px rgba(0,0,0,0.5); }
-        
-        /* Linhas e Cabaça */
-        .stave-lines { position: absolute; top: 100px; left: 150px; right: 40px; height: 80px; display: flex; flex-direction: column; justify-content: space-between; }
+        /* Linhas da Pauta e Cabaça */
+        .pauta-area { position: relative; height: 120px; margin-left: 100px; display: flex; align-items: center; }
+        .stave-lines { position: absolute; width: 100%; height: 60px; display: flex; flex-direction: column; justify-content: space-between; z-index: 1; }
         .line { height: 2px; background: #000; width: 100%; }
-        .cabaca-container { position: absolute; left: 40px; top: 80px; width: 80px; height: 120px; }
         
-        /* Container de Notas */
-        .notes-track { position: absolute; top: 70px; left: 160px; display: flex; gap: 20px; align-items: flex-start; }
+        .cabaca-container { position: absolute; left: -80px; top: 15px; width: 60px; height: 90px; z-index: 2; }
         
-        /* Estrutura da Nota */
-        .note-wrapper { position: relative; display: flex; flex-direction: column; align-items: center; width: 40px; cursor: pointer; }
-        .note-svg { width: 40px; height: 100px; overflow: visible; }
+        /* Legenda Esquerda (1 a 5) */
+        .legend-num { position: absolute; left: -100px; top: 0; height: 100%; display: flex; flex-direction: column; justify-content: space-between; font-weight: bold; font-size: 14px; padding: 10px 0;}
         
-        /* Modificadores */
-        .mod-pausa { position: absolute; top: 30px; left: 0; font-size: 40px; color: red; font-weight: bold; pointer-events: none; }
-        .mod-opcional::before { content: "("; position: absolute; left: -10px; top: 35px; font-size: 24px; }
-        .mod-opcional::after { content: ")"; position: absolute; right: -10px; top: 35px; font-size: 24px; }
-        .mod-abafada::after { content: "X"; position: absolute; top: 35px; left: 10px; font-size: 24px; color: blue; font-weight: bold; }
+        /* Trilho das Notas */
+        .notes-track { position: absolute; left: 0; top: 0; display: flex; align-items: flex-start; z-index: 3; height: 100%; }
         
-        /* Posições das Notas na Pauta (Linhas e Espaços) */
-        .pos-1 { margin-top: 60px; } /* Linha 1 (Baixo) */
-        .pos-2 { margin-top: 40px; } /* Espaço 1 */
-        .pos-3 { margin-top: 20px; } /* Linha 2 (Meio) */
-        .pos-4 { margin-top: 0px; }  /* Espaço 2 */
-        .pos-5 { margin-top: -20px;} /* Linha 3 (Cima) */
+        .note-wrapper { position: relative; display: flex; flex-direction: column; align-items: center; cursor: pointer; width: 45px; margin-right: 5px; }
+        .note-wrapper:hover { background: rgba(0,0,0,0.05); }
+        .note-svg { width: 40px; height: 90px; overflow: visible; }
         
-        /* Legenda das posições no início */
-        .pos-legend { position: absolute; left: 130px; top: 80px; font-size: 12px; font-weight: bold; display: flex; flex-direction: column; gap: 15px;}
+        /* Barras de Compasso */
+        .bar-line { width: 2px; background: #000; height: 60px; margin: 30px 10px 0 10px; }
+        .final-bar-line { width: 6px; border-left: 2px solid #000; border-right: 4px solid #000; height: 60px; margin: 30px 10px 0 10px; }
+        
+        /* UI de Controles */
+        .grid-2 { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; }
+        .btn { background: #333; color: white; border: 1px solid #555; padding: 10px; border-radius: 5px; cursor: pointer; font-weight: bold; }
+        .btn.active { background: var(--accent); color: black; border-color: var(--accent); }
+        .btn-play { background: #4caf50; color: white; border: none; padding: 15px; font-size: 16px; width: 100%; margin: 10px 0; }
+        .btn-action { background: #007bff; color: white; border: none; padding: 10px; width: 100%; margin-top: 5px; }
+        
+        select, input { padding: 8px; background: #222; color: #fff; border: 1px solid #444; width: 100%; box-sizing: border-box; }
+        .config-box { background: #2a2a35; padding: 10px; border-radius: 5px; margin-bottom: 10px; }
+        label { font-size: 0.8em; color: #aaa; display: block; margin-bottom: 5px; }
+        
+        /* Conexão Colcheias (Beam) */
+        .beam { position: absolute; background: black; height: 4px; top: 18px; right: -25px; width: 30px; z-index: 4; }
     </style>
 </head>
 <body>
 
 <svg width="0" height="0" style="display:none;">
     <defs>
-        <pattern id="pat-chiado" width="4" height="4" patternUnits="userSpaceOnUse" patternTransform="rotate(45)">
-            <rect width="2" height="4" fill="black" />
-            <rect x="2" width="2" height="4" fill="white" />
+        <pattern id="pat-chiado" width="8" height="8" patternUnits="userSpaceOnUse" patternTransform="rotate(45)">
+            <rect width="4" height="8" fill="black" />
+            <rect x="4" width="4" height="8" fill="white" />
         </pattern>
-        <linearGradient id="pat-solta-chiado" x1="0%" y1="0%" x2="100%" y2="0%">
-            <stop offset="50%" style="stop-color:white; stop-opacity:1" />
-            <stop offset="50%" style="stop-color:black; stop-opacity:1" />
+        <linearGradient id="pat-soltachiado" x1="0%" y1="0%" x2="100%" y2="0%">
+            <stop offset="50%" stop-color="white"/>
+            <stop offset="50%" stop-color="black"/>
         </linearGradient>
     </defs>
 </svg>
 
-<div id="toolbar">
-    <h3>Configuração Global</h3>
-    <div class="row">
-        <div>
-            <label>BPM:</label>
-            <input type="number" id="cfg-bpm" value="120" onchange="atualizarHeader()">
+<div id="editor-container">
+    <div class="sheet-wrapper" id="partitura-export">
+        <div class="sheet-header">
+            <span id="lbl-bpm">BPM: 120 (Semínima)</span>
+            <span id="lbl-comp">Compasso: 4/4</span>
         </div>
-        <div>
-            <label>Força (1-6):</label>
-            <input type="number" id="cfg-forca" value="3" min="1" max="6" onchange="atualizarHeader()">
+        
+        <div class="pauta-area">
+            <div class="legend-num">
+                <span>5</span><span>4</span><span>3</span><span>2</span><span>1</span>
+            </div>
+            <div class="cabaca-container" id="view-cabaca"></div>
+            
+            <div class="stave-lines">
+                <div class="line"></div>
+                <div class="line"></div>
+                <div class="line"></div>
+            </div>
+            
+            <div class="notes-track" id="view-notas"></div>
         </div>
     </div>
-    
-    <label>Compasso (Ex: 4/4):</label>
-    <div class="row">
-        <input type="number" id="cfg-comp-notas" value="4" onchange="atualizarHeader()"> /
-        <select id="cfg-comp-base" onchange="atualizarHeader()">
-            <option value="1">1 (Semínima)</option>
-            <option value="2">2 (Mínima)</option>
-            <option value="4">4 (Semibreve)</option>
-            <option value="0.5">1/2 (Colcheia)</option>
-        </select>
-    </div>
-
-    <label>Cabaça (Berimbau):</label>
-    <select id="cfg-cabaca" onchange="renderizar()">
-        <option value="todos">Todos (Branca)</option>
-        <option value="viola">Viola (1/4)</option>
-        <option value="medio">Médio (2/4)</option>
-        <option value="gunga">Gunga (3/4)</option>
-        <option value="berraboi">Berra Boi (4/4)</option>
-    </select>
-    
-    <label>Modo de Visualização:</label>
-    <select id="cfg-guia" onchange="renderizar()">
-        <option value="com">Com Guia (Símbolos nas notas)</option>
-        <option value="sem">Sem Guia (Notas brancas clássicas)</option>
-    </select>
-
-    <hr style="border-color:#444; margin: 20px 0;">
-
-    <h3>Adicionar Elemento</h3>
-    <label>Técnica/Som:</label>
-    <select id="nota-tecnica">
-        <option value="presa">Presa (Preto)</option>
-        <option value="solta">Solta (Branco)</option>
-        <option value="chiado">Chiado (Listrado)</option>
-        <option value="acaxixi">Acaxixi (Círculo no meio)</option>
-        <option value="soltachiado">Solta + Chiado (Metade)</option>
-    </select>
-    
-    <label>Valor da Nota:</label>
-    <select id="nota-valor">
-        <option value="8">Breve (8 tempos)</option>
-        <option value="4">Semibreve (4 tempos)</option>
-        <option value="2">Mínima (2 tempos)</option>
-        <option value="1" selected>Semínima (1 tempo)</option>
-        <option value="0.5">Colcheia (1/2)</option>
-        <option value="0.25">Semicolcheia (1/4)</option>
-        <option value="0.125">Fusa (1/8)</option>
-        <option value="0.0625">Semifusa (1/16)</option>
-    </select>
-
-    <label>Posição na Pauta:</label>
-    <select id="nota-pos">
-        <option value="pos-5">5 - Linha 3 (Alta)</option>
-        <option value="pos-4">4 - Espaço 2</option>
-        <option value="pos-3" selected>3 - Linha 2 (Meio)</option>
-        <option value="pos-2">2 - Espaço 1</option>
-        <option value="pos-1">1 - Linha 1 (Baixa)</option>
-    </select>
-
-    <label>Modificador Especial:</label>
-    <select id="nota-mod">
-        <option value="nenhum">Nenhum</option>
-        <option value="pausa">Pausa (Silêncio)</option>
-        <option value="opcional">Opcional ( )</option>
-        <option value="abafada">Abafada ( X )</option>
-    </select>
-
-    <div class="row">
-        <input type="checkbox" id="nota-ligadura"> <label style="margin-top:0">Ligar com a próxima</label>
-    </div>
-
-    <button class="btn" onclick="adicionarNota()">+ Inserir na Partitura</button>
-    <button class="btn btn-play" onclick="tocarPartitura()">▶ Tocar Partitura (Áudio)</button>
-    <button class="btn" style="background:#555; color:white;" onclick="limpar()">Limpar Tudo</button>
 </div>
 
-<div id="editor-container">
-    <div id="score-header">
-        <span id="lbl-bpm">BPM - 120 - Semínima</span>
-        <span id="lbl-comp">Compasso: 4/4</span>
-        <span id="lbl-forca">Força: 3</span>
+<div id="toolbar">
+    <button class="btn-play" onclick="tocarPartitura()">▶ TOCAR PARTITURA</button>
+
+    <div class="config-box">
+        <h4>1. Selecione a Duração (Fica salvo)</h4>
+        <div class="grid-2" id="btn-valores">
+            <button class="btn active" onclick="setValor(1, this)">Semínima (1)</button>
+            <button class="btn" onclick="setValor(2, this)">Mínima (2)</button>
+            <button class="btn" onclick="setValor(0.5, this)">Colcheia (1/2)</button>
+            <button class="btn" onclick="setValor(0.25, this)">Semicolcheia (1/4)</button>
+            <button class="btn" onclick="setValor('pausa', this)">Pausa (/)</button>
+        </div>
     </div>
 
-    <div class="sheet">
-        <div class="cabaca-container" id="view-cabaca"></div>
-        
-        <div class="pos-legend">
-            <span>5</span><span>4</span><span>3</span><span>2</span><span>1</span>
+    <div class="config-box">
+        <h4>2. Toque no Som para Adicionar</h4>
+        <div class="grid-2">
+            <button class="btn" style="border-left: 5px solid black;" onclick="addNota('presa')">+ Presa</button>
+            <button class="btn" style="border-left: 5px solid white;" onclick="addNota('solta')">+ Solta</button>
+            <button class="btn" style="border-left: 5px solid gray;" onclick="addNota('chiado')">+ Chiado</button>
+            <button class="btn" style="border-left: 5px solid black;" onclick="addNota('acaxixi')">+ Acaxixi</button>
+            <button class="btn" style="border-left: 5px solid gray;" onclick="addNota('soltachiado')">+ Solta+Chiado</button>
         </div>
+    </div>
 
-        <div class="stave-lines">
-            <div class="line"></div>
-            <div class="line"></div>
-            <div class="line"></div>
+    <div class="config-box">
+        <h4>Configurar Posições (1 a 5)</h4>
+        <div class="grid-2">
+            <div><label>Linha 5 (Alta)</label><select id="map-5"><option value="chiado">Chiado</option><option value="solta">Solta</option><option value="presa">Presa</option><option value="acaxixi">Acaxixi</option><option value="soltachiado">Solta+Chiado</option></select></div>
+            <div><label>Espaço 4</label><select id="map-4"><option value="soltachiado">Solta+Chiado</option><option value="solta">Solta</option><option value="presa">Presa</option><option value="chiado">Chiado</option><option value="acaxixi">Acaxixi</option></select></div>
+            <div><label>Linha 3 (Meio)</label><select id="map-3"><option value="solta" selected>Solta</option><option value="presa">Presa</option><option value="chiado">Chiado</option><option value="acaxixi">Acaxixi</option><option value="soltachiado">Solta+Chiado</option></select></div>
+            <div><label>Espaço 2</label><select id="map-2"><option value="acaxixi">Acaxixi</option><option value="solta">Solta</option><option value="presa">Presa</option><option value="chiado">Chiado</option><option value="soltachiado">Solta+Chiado</option></select></div>
+            <div><label>Linha 1 (Baixa)</label><select id="map-1"><option value="presa" selected>Presa</option><option value="solta">Solta</option><option value="chiado">Chiado</option><option value="acaxixi">Acaxixi</option><option value="soltachiado">Solta+Chiado</option></select></div>
         </div>
+    </div>
 
-        <div class="notes-track" id="view-notas"></div>
+    <div class="grid-2" style="margin-top: 15px;">
+        <button class="btn-action" style="background:#28a745;" onclick="salvarPartitura()">💾 Salvar</button>
+        <button class="btn-action" style="background:#17a2b8;" onclick="carregarPartitura()">📂 Carregar</button>
+        <button class="btn-action" style="background:#dc3545; grid-column: span 2;" onclick="baixarImagem()">📸 Baixar como Imagem</button>
+        <button class="btn-action" style="background:#6c757d; grid-column: span 2;" onclick="limparTudo()">🗑 Limpar Tudo</button>
     </div>
 </div>
 
 <script>
     let partitura = [];
+    let valorAtual = 1;
+    let isPausa = false;
 
-    function atualizarHeader() {
-        const bpm = document.getElementById('cfg-bpm').value;
-        const base = document.getElementById('cfg-comp-base').options[document.getElementById('cfg-comp-base').selectedIndex].text;
-        const forca = document.getElementById('cfg-forca').value;
-        const compN = document.getElementById('cfg-comp-notas').value;
-        const compB = document.getElementById('cfg-comp-base').value;
-
-        document.getElementById('lbl-bpm').innerText = `BPM - ${bpm} - ${base}`;
-        document.getElementById('lbl-comp').innerText = `Compasso: ${compN}/${compB === "0.5" ? "8" : (compB == "0.25" ? "16" : 1/compB)}`;
-        document.getElementById('lbl-forca').innerText = `Força: ${forca}`;
+    // Configuração de Cabaça Padrão Gunga para o visual
+    function renderCabaça() {
+        document.getElementById('view-cabaca').innerHTML = `<svg viewBox="0 0 100 100"><circle cx="50" cy="50" r="45" fill="white" stroke="black" stroke-width="4"/><path d="M50,50 L5,50 A45,45 0 1,1 50,95 Z" fill="black"/></svg>`;
     }
 
-    function adicionarNota() {
-        const nota = {
-            tecnica: document.getElementById('nota-tecnica').value,
-            valor: parseFloat(document.getElementById('nota-valor').value),
-            posicao: document.getElementById('nota-pos').value,
-            modificador: document.getElementById('nota-mod').value,
-            ligada: document.getElementById('nota-ligadura').checked
-        };
-        partitura.push(nota);
+    function setValor(val, btnRef) {
+        if (val === 'pausa') { isPausa = true; valorAtual = 1; }
+        else { isPausa = false; valorAtual = parseFloat(val); }
+        
+        document.querySelectorAll('#btn-valores .btn').forEach(b => b.classList.remove('active'));
+        btnRef.classList.add('active');
+    }
+
+    function getPosicaoByTecnica(tecnica) {
+        for(let i=1; i<=5; i++) {
+            if(document.getElementById(`map-${i}`).value === tecnica) return `pos-${i}`;
+        }
+        return 'pos-3'; // Padrão se não achar
+    }
+
+    function addNota(tecnica) {
+        partitura.push({
+            id: Date.now(),
+            tecnica: tecnica,
+            valor: valorAtual,
+            posicao: getPosicaoByTecnica(tecnica),
+            isPausa: isPausa
+        });
         renderizar();
     }
 
-    function limpar() { partitura = []; renderizar(); }
-
-    function getPreenchimento(tecnica, comGuia) {
-        if (!comGuia) return "white"; // Sem guia = clássico branco
-        switch(tecnica) {
-            case 'presa': return "black";
-            case 'solta': return "white";
-            case 'chiado': return "url(#pat-chiado)";
-            case 'soltachiado': return "url(#pat-solta-chiado)";
-            default: return "white";
+    function removerNota(id) {
+        if(confirm("Deseja apagar esta nota?")) {
+            partitura = partitura.filter(n => n.id !== id);
+            renderizar();
         }
-    }
-
-    function renderizarCabaca() {
-        const tipo = document.getElementById('cfg-cabaca').value;
-        let svg = `<svg viewBox="0 0 100 100"><circle cx="50" cy="50" r="45" fill="white" stroke="black" stroke-width="4"/>`;
-        
-        // Pinta os pedaços (fatias de pizza) baseado no tipo de berimbau
-        if(tipo === 'viola') svg += `<path d="M50,50 L50,5 A45,45 0 0,1 95,50 Z" fill="black"/>`; // 1/4
-        if(tipo === 'medio') svg += `<path d="M50,50 L50,5 A45,45 0 0,1 50,95 Z" fill="black"/>`; // 2/4 (Metade)
-        if(tipo === 'gunga') svg += `<path d="M50,50 L5,50 A45,45 0 1,1 50,95 Z" fill="black"/>`; // 3/4
-        if(tipo === 'berraboi') svg += `<circle cx="50" cy="50" r="45" fill="black"/>`; // 4/4
-        
-        svg += `</svg>`;
-        document.getElementById('view-cabaca').innerHTML = svg;
     }
 
     function renderizar() {
-        renderizarCabaca();
         const container = document.getElementById('view-notas');
-        const comGuia = document.getElementById('cfg-guia').value === 'com';
         container.innerHTML = '';
-
-        partitura.forEach((n, index) => {
-            const fill = getPreenchimento(n.tecnica, comGuia);
-            let innerSVG = '';
-            
-            // Lógica visual baseada no valor da nota e na sua imagem
-            // Desenho do corpo da nota
-            if (n.valor === 8) { // Breve (Círculo grosso)
-                innerSVG += `<ellipse cx="20" cy="80" rx="14" ry="10" fill="${fill}" stroke="black" stroke-width="4"/>`;
-            } else if (n.valor === 4) { // Semibreve (Quadrado com bola dentro)
-                innerSVG += `<rect x="5" y="70" width="30" height="20" fill="none" stroke="black" stroke-width="2"/>
-                             <ellipse cx="20" cy="80" rx="12" ry="8" fill="${fill}" stroke="black" stroke-width="1"/>`;
-            } else {
-                // Corpo padrão (oval) para Mínima para baixo
-                innerSVG += `<ellipse cx="15" cy="80" rx="10" ry="7" fill="${fill}" stroke="black" stroke-width="2"/>`;
-                
-                // Acaxixi (círculo preto dentro se for oval e com guia)
-                if(comGuia && n.tecnica === 'acaxixi') {
-                    innerSVG += `<circle cx="15" cy="80" r="4" fill="black"/>`;
-                }
-
-                // Haste (Stem) para Mínima ou menor
-                innerSVG += `<line x1="25" y1="80" x2="25" y2="20" stroke="black" stroke-width="2"/>`;
-                
-                // Colchetes (Flags) baseados no valor
-                if (n.valor <= 0.5) innerSVG += `<path d="M25,20 Q35,30 35,45" fill="none" stroke="black" stroke-width="2"/>`; // 1
-                if (n.valor <= 0.25) innerSVG += `<path d="M25,30 Q35,40 35,55" fill="none" stroke="black" stroke-width="2"/>`; // 2
-                if (n.valor <= 0.125) innerSVG += `<path d="M25,40 Q35,50 35,65" fill="none" stroke="black" stroke-width="2"/>`; // 3
-                if (n.valor <= 0.0625) innerSVG += `<path d="M25,50 Q35,60 35,75" fill="none" stroke="black" stroke-width="2"/>`; // 4
-            }
-
-            // Juntar notas (Ligadura) Visual
-            if (n.ligada) {
-                innerSVG += `<path d="M15,90 Q35,110 55,90" fill="none" stroke="black" stroke-width="2"/>`;
-            }
-
-            let extraClass = '';
-            let htmlMods = '';
-            if (n.modificador === 'pausa') htmlMods = '<div class="mod-pausa">/</div>';
-            if (n.modificador === 'opcional') extraClass += ' mod-opcional';
-            if (n.modificador === 'abafada') extraClass += ' mod-abafada';
-
-            const notaDiv = document.createElement('div');
-            notaDiv.className = `note-wrapper ${n.posicao} ${extraClass}`;
-            notaDiv.innerHTML = `
-                ${htmlMods}
-                <svg class="note-svg">${innerSVG}</svg>
-            `;
-            container.appendChild(notaDiv);
-        });
-    }
-
-    // ENGINE DE ÁUDIO MATEMÁTICO (Baseado em BPM e Valor da Nota)
-    async function tocarPartitura() {
-        alert("Atenção: O sistema fará o som da nota respectiva. Aviso: os áudios base carregados são de um Berimbau Gunga (mesmo que a cabaça mostre outro)!");
         
-        const bpm = parseInt(document.getElementById('cfg-bpm').value);
-        const tempoBaseBatidaSegundos = 60 / bpm; // Ex: 120 BPM = 0.5 seg por batida base (Semínima)
-        
-        for (let i = 0; i < partitura.length; i++) {
+        let somaCompasso = 0;
+        const compassoMax = 4; // 4 tempos padrão
+
+        for(let i = 0; i < partitura.length; i++) {
             const n = partitura[i];
             
-            // O tempo exato que essa nota ocupa na partitura em ms
-            // Como usamos a Semínima (valor 1) como base para a conta:
-            const tempoDestaNotaMs = (tempoBaseBatidaSegundos * n.valor) * 1000;
+            // Lógica Visual do Preenchimento
+            let fill = "white";
+            if(n.tecnica === 'presa') fill = "black";
+            if(n.tecnica === 'chiado') fill = "url(#pat-chiado)";
+            if(n.tecnica === 'soltachiado') fill = "url(#pat-soltachiado)";
+
+            let innerSVG = '';
             
-            // Se for pausa, não toca o som, só espera o tempo matemático passar
-            if (n.modificador !== 'pausa') {
-                try {
-                    // Ele procurará na sua pasta os arquivos: presa.mp3, chiado.mp3, etc.
-                    const som = new Audio(`${n.tecnica}.mp3`);
-                    
-                    // Ajuste de volume baseado na força (1 a 6)
-                    const forca = parseInt(document.getElementById('cfg-forca').value);
-                    som.volume = forca / 6; 
-                    
-                    som.play();
-                } catch (e) {
-                    console.log("Arquivo de som não encontrado, silenciando para manter o ritmo.");
+            if (n.isPausa) {
+                innerSVG = `<text x="10" y="60" font-size="40" fill="red" font-weight="bold">/</text>`;
+            } else {
+                // Corpo da nota
+                if (n.valor >= 2) {
+                    innerSVG += `<ellipse cx="15" cy="70" rx="10" ry="7" fill="${fill}" stroke="black" stroke-width="2"/>`;
+                } else {
+                    innerSVG += `<ellipse cx="15" cy="70" rx="10" ry="7" fill="${fill}" stroke="black" stroke-width="2"/>`;
                 }
+
+                // Detalhe Acaxixi
+                if (n.tecnica === 'acaxixi') innerSVG += `<circle cx="15" cy="70" r="4" fill="black"/>`;
+
+                // Haste
+                if (n.valor <= 2) innerSVG += `<line x1="25" y1="70" x2="25" y2="10" stroke="black" stroke-width="2"/>`;
+
+                // Conexão (Juntar Colcheias - Simplificado)
+                let hasBeam = false;
+                if (n.valor <= 0.5 && i < partitura.length - 1 && partitura[i+1].valor <= 0.5 && !partitura[i+1].isPausa) {
+                    innerSVG += `<rect x="25" y="10" width="45" height="4" fill="black" />`;
+                    hasBeam = true;
+                }
+                
+                // Colchete final se não tiver conexão
+                if (n.valor <= 0.5 && !hasBeam) innerSVG += `<path d="M25,10 Q35,20 35,35" fill="none" stroke="black" stroke-width="2"/>`;
+                if (n.valor <= 0.25 && !hasBeam) innerSVG += `<path d="M25,20 Q35,30 35,45" fill="none" stroke="black" stroke-width="2"/>`;
             }
 
-            // O sistema ESPERA EXATAMENTE a duração da nota antes de ir para a próxima.
-            // Ex: Se o BPM for 60, e a nota for Mínima (2), ele espera 2000ms.
-            await new Promise(resolve => setTimeout(resolve, tempoDestaNotaMs));
+            // Margin top baseado na posição (1 a 5)
+            let mTop = 0;
+            if(n.posicao === 'pos-5') mTop = -10;
+            if(n.posicao === 'pos-4') mTop = 5;
+            if(n.posicao === 'pos-3') mTop = 20;
+            if(n.posicao === 'pos-2') mTop = 35;
+            if(n.posicao === 'pos-1') mTop = 50;
+
+            const div = document.createElement('div');
+            div.className = `note-wrapper`;
+            div.style.marginTop = `${mTop}px`;
+            div.onclick = () => removerNota(n.id);
+            div.innerHTML = `<svg class="note-svg">${innerSVG}</svg>`;
+            container.appendChild(div);
+
+            somaCompasso += n.valor;
+
+            // Fechamento de Compasso (Linha vertical)
+            if(somaCompasso >= compassoMax && i !== partitura.length - 1) {
+                const bar = document.createElement('div');
+                bar.className = 'bar-line';
+                container.appendChild(bar);
+                somaCompasso = 0;
+            }
+        }
+
+        // Linha Final da Música
+        if(partitura.length > 0) {
+            const endBar = document.createElement('div');
+            endBar.className = 'final-bar-line';
+            container.appendChild(endBar);
         }
     }
 
-    // Inicia a tela
-    atualizarHeader();
-    renderizarCabaca();
-</script>
+    async function tocarPartitura() {
+        const bpm = 120;
+        const tempoBase = 60 / bpm; 
+        
+        for (let i = 0; i < partitura.length; i++) {
+            const n = partitura[i];
+            const tempoMs = (tempoBase * n.valor) * 1000;
+            let som = null;
 
+            if (!n.isPausa) {
+                try {
+                    som = new Audio(`${n.tecnica}.mp3`);
+                    som.play();
+                } catch (e) {}
+            }
+
+            // O SISTEMA ESPERA O TEMPO DA NOTA PASSAR
+            await new Promise(r => setTimeout(r, tempoMs));
+
+            // CORTA O ÁUDIO PARA NÃO SOBREPOR NOTAS PEQUENAS (Ex: 1/16)
+            if(som) {
+                som.pause();
+                som.currentTime = 0;
+            }
+        }
+    }
+
+    function salvarPartitura() {
+        localStorage.setItem('berimbau_save', JSON.stringify(partitura));
+        alert("Salvo com sucesso!");
+    }
+
+    function carregarPartitura() {
+        const data = localStorage.getItem('berimbau_save');
+        if(data) { partitura = JSON.parse(data); renderizar(); }
+    }
+
+    function limparTudo() { partitura = []; renderizar(); }
+
+    function baixarImagem() {
+        alert("Gerando imagem... Aguarde um instante.");
+        html2canvas(document.getElementById("partitura-export")).then(canvas => {
+            let link = document.createElement('a');
+            link.download = 'minha-partitura.png';
+            link.href = canvas.toDataURL();
+            link.click();
+        });
+    }
+
+    renderCabaça();
+</script>
 </body>
-                             </html>
-            
+</html>
+                                                                                                            </html>
+                
