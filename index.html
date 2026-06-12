@@ -293,12 +293,12 @@
 
     // CORRIGIDO: Coordenadas exatas das 5 alturas baseadas no seu desenho de 3 linhas!
     function getTargetCy(linhaPos) {
-        if (linhaPos === 5) return 55;  // Espaço de cima
-        if (linhaPos === 4) return 70;  // Linha do meio
-        if (linhaPos === 3) return 85;  // Espaço de baixo
-        if (linhaPos === 2) return 100; // Linha de baixo
-        if (linhaPos === 1) return 115; // Espaço totalmente abaixo da pauta
-        return 85;
+        if (linhaPos === 5) return 40;  // Espaço de cima
+        if (linhaPos === 4) return 55;  // Linha do meio
+        if (linhaPos === 3) return 70;  // Espaço de baixo
+        if (linhaPos === 2) return 85; // Linha de baixo
+        if (linhaPos === 1) return 100; // Espaço totalmente abaixo da pauta
+        return 115;
     }
 
     function criarElementoNota(n, index, arr, exportView) {
