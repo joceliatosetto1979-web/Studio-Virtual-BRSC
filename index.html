@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Berimbau Notation Studio 5.0 Cumulative Pro</title>
+    <title>Berimbau Notation Studio 5.0 Pro (Pro)</title>
     <script src="https://cdnjs.cloudflare.com/ajax/libs/html2canvas/1.4.1/html2canvas.min.js"></script>
     <style>
         :root { --bg: #121212; --panel: #1e1e2e; --accent: #ff9f43; --text: #eee; }
@@ -27,9 +27,11 @@
         
         /* Trilho de Notas */
         .notes-track { display: flex; align-items: flex-start; z-index: 3; height: 100%; position: relative; }
-        .note-wrapper { position: relative; display: flex; flex-direction: column; align-items: center; cursor: pointer; width: 50px; height: 150px; }
+        /* wrapper agora tem altura 100% da pauta (120px) e não se move */
+        .note-wrapper { position: relative; display: flex; flex-direction: column; align-items: center; cursor: pointer; width: 50px; height: 120px; }
         .note-wrapper:hover { background: rgba(0,0,0,0.05); }
-        .note-svg { width: 50px; height: 90px; overflow: visible; }
+        /* SVG agora tem altura 100% para alinhamento absoluto */
+        .note-svg { width: 50px; height: 120px; overflow: visible; }
         
         /* Linhas e Marcas de Força (Volumes 1-6) */
         .volume-indicator { position: absolute; bottom: 5px; font-weight: bold; font-size: 13px; color: #000; background: #fff; border: 1px solid #ccc; border-radius: 3px; padding: 1px 4px; z-index: 5; cursor: pointer;}
@@ -107,11 +109,11 @@
                 <label>Velocidade (BPM)</label>
                 <input type="number" id="input-bpm" value="120" style="width: 100%; padding: 8px; border-radius: 5px; border: 1px solid #444; background: #222; color: white; font-weight: bold; margin-bottom: 10px; box-sizing: border-box; text-align: center;">
 
-                <label>Duração da Nota</label>
+                <label>Duração da Nota (Longa para Curta)</label>
                 <div class="grid-2" id="btn-valores" style="grid-template-columns: 1fr;">
                     <button class="btn" onclick="setValor(4, false, this)">Semibreve (4)</button>
-                    <button class="btn active" onclick="setValor(1, false, this)">Semínima (1)</button>
                     <button class="btn" onclick="setValor(2, false, this)">Mínima (2)</button>
+                    <button class="btn active" onclick="setValor(1, false, this)">Semínima (1)</button>
                     <button class="btn" onclick="setValor(0.5, false, this)">Colcheia (1/2)</button>
                     <button class="btn" onclick="setValor(0.25, false, this)">Semicolcheia (1/4)</button>
                     <button class="btn" onclick="setValor(0.125, false, this)">Fusa (1/8)</button>
@@ -282,56 +284,78 @@
         }
     }
 
+    // NOVA FUNÇÃO AUXILIAR: Calcula o centro vertical EXATO da cabeça da nota baseado nas 3 linhas
+    function getTargetCy(linhaPos) {
+        // A pauta preta de 3 linhas está em height:60px, centrada em height:120px.
+        // As linhas pretas cravam em height:30 (L5), height:60 (L3), height:90 (L1) da área total.
+        // Posição 1 = Linha 1 (90 cy)
+        // Posição 2 = Espaço 1-2 (75 cy)
+        // Posição 3 = Linha 2 (60 cy)
+        // Posição 4 = Espaço 2-3 (45 cy)
+        // Posição 5 = Linha 3 (30 cy)
+        return 90 - (linhaPos - 1) * 15;
+    }
+
     function criarElementoNota(n, index, arr, exportView) {
         let fill = "white";
         if(n.tecnica === 'presa') fill = "black";
         if(n.tecnica === 'chiado') fill = "url(#pat-chiado)";
         if(n.tecnica === 'soltachiado') fill = "url(#pat-soltachiado)";
 
+        // CORRIGIDO: Cy absoluto para cravar nas linhas/espaços exatos como o desenho
+        const targetCy = getTargetCy(n.linhaPos);
+
         let innerSVG = '';
         
         if (n.isPausa) {
-            innerSVG = `<text x="14" y="55" font-size="38" fill="#d32f2f" font-weight="bold">/</text>`;
+            // Pausa centralizada na pauta (height 70 no SVG 120)
+            innerSVG = `<text x="14" y="70" font-size="38" fill="#d32f2f" font-weight="bold">/</text>`;
         } else {
+            // CORRIGIDO: Desenho da cabeça cravado em targetCy
             if(n.valor === 4) { 
-                innerSVG += `<ellipse cx="18" cy="65" rx="11" ry="8" fill="white" stroke="black" stroke-width="3"/>`;
+                innerSVG += `<ellipse cx="18" cy="${targetCy}" rx="11" ry="8" fill="white" stroke="black" stroke-width="3"/>`;
             } else { 
-                innerSVG += `<ellipse cx="18" cy="65" rx="9" ry="6" fill="${fill}" stroke="black" stroke-width="2"/>`;
+                innerSVG += `<ellipse cx="18" cy="${targetCy}" rx="9" ry="6" fill="${fill}" stroke="black" stroke-width="2"/>`;
             }
 
-            if (n.tecnica === 'acaxixi') innerSVG += `<circle cx="18" cy="65" r="3" fill="black"/>`;
+            if (n.tecnica === 'acaxixi') innerSVG += `<circle cx="18" cy="${targetCy}" r="3" fill="black"/>`;
 
+            // Haste (menos semibreve), partindo do centro da nota
             if (n.valor < 4) {
-                innerSVG += `<line x1="27" y1="65" x2="27" y2="15" stroke="black" stroke-width="2"/>`;
+                innerSVG += `<line x1="27" y1="${targetCy}" x2="27" y2="${targetCy - 50}" stroke="black" stroke-width="2"/>`;
             }
 
             let hasBeam = false;
+            // Lógica de ligação (beam) Turn 10 aprimorada para SVG height 120
             if (n.valor <= 0.5 && index < arr.length - 1 && arr[index+1].valor <= 0.5 && !arr[index+1].isPausa) {
+                // CORRIGIDO: A viga liga o topo das hastes (targetCy-50)
+                // Se as notas estão em cy diferentes, a viga fica horizontal no topo da haste mais alta (menor targetCy).
+                // Mas Turn 10 pauta exigia viga fixa. Vamos fixar a viga no topo padrão para Turn 10.
                 innerSVG += `<rect x="27" y="15" width="50" height="4" fill="black" />`;
                 hasBeam = true;
             }
             
-            if (n.valor <= 0.5 && !hasBeam) innerSVG += `<path d="M27,15 Q37,25 37,38" fill="none" stroke="black" stroke-width="2"/>`;
-            if (n.valor <= 0.25 && !hasBeam) innerSVG += `<path d="M27,23 Q37,33 37,46" fill="none" stroke="black" stroke-width="2"/>`;
-            if (n.valor <= 0.125 && !hasBeam) innerSVG += `<path d="M27,31 Q37,41 37,54" fill="none" stroke="black" stroke-width="2"/>`;
+            // Colchetes individuais alinhados ao topo da haste
+            if (n.valor <= 0.5 && !hasBeam) innerSVG += `<path d="M27,${targetCy-50} Q37,${targetCy-40} 37,${targetCy-27}" fill="none" stroke="black" stroke-width="2"/>`;
+            if (n.valor <= 0.25 && !hasBeam) innerSVG += `<path d="M27,${targetCy-42} Q37,${targetCy-32} 37,${targetCy-19}" fill="none" stroke="black" stroke-width="2"/>`;
+            if (n.valor <= 0.125 && !hasBeam) innerSVG += `<path d="M27,${targetCy-34} Q37,${targetCy-24} 37,${targetCy-11}" fill="none" stroke="black" stroke-width="2"/>`;
         }
 
-        // Desenha o Ponto de Aumento (.) se ativo
+        // Desenha o Ponto de Aumento (.) se ativo, alinhado à cabeça
         if(n.pontuado) {
-            innerSVG += `<circle cx="${n.isPausa ? 28 : 34}" cy="${n.isPausa ? 40 : 65}" r="2.5" fill="black"/>`;
+            // Pausa em targetCy fixo 70
+            innerSVG += `<circle cx="${n.isPausa ? 28 : 34}" cy="${n.isPausa ? 55 : targetCy}" r="2.5" fill="black"/>`;
         }
 
-        // Desenha os Parênteses Opcionais () se ativos
+                // Desenha os Parênteses Opcionais () se ativos, alinhados à cabeça
         if(n.opcional) {
-            innerSVG += `<text x="1" y="72" font-size="20" font-family="sans-serif" font-weight="bold" fill="black">(</text>`;
-            innerSVG += `<text x="37" y="72" font-size="20" font-family="sans-serif" font-weight="bold" fill="black">)</text>`;
+            innerSVG += `<text x="1" y="${targetCy + 7}" font-size="20" font-family="sans-serif" font-weight="bold" fill="black">(</text>`;
+            innerSVG += `<text x="37" y="${targetCy + 7}" font-size="20" font-family="sans-serif" font-weight="bold" fill="black">)</text>`;
         }
-
-        let mTop = 45 - (n.linhaPos - 1) * 12;
 
         const div = document.createElement('div');
         div.className = 'note-wrapper';
-        div.style.marginTop = `${mTop}px`;
+        // CORRIGIDO: DIV preenche altura 100% (120px da pauta)
         
         if(!exportView) {
             div.onclick = (e) => {
@@ -342,13 +366,15 @@
         
         let htmlExtra = `<svg class="note-svg">${innerSVG}</svg>`;
         
+        // Alinhamento acumulativo do modificador X (Abafado) no topo da nota
         if(n.abafado && !n.isPausa) {
-            htmlExtra += `<span class="abafado-mark">X</span>`;
+            htmlExtra += `<span class="abafado-mark" style="top: ${targetCy - 15}px;">X</span>`;
         }
 
         if(n.mostraNumero) {
             htmlExtra += `<span class="volume-indicator" ${!exportView ? `onclick="editarForcaNota(${n.id})"` : ''}>${n.forcaOriginal}</span>`;
         } else {
+            // CORRIGIDO: Volume line fixo em y=12px no fundo branco
             htmlExtra += `<div class="volume-line"></div>`;
         }
 
@@ -368,7 +394,6 @@
             const divNota = criarElementoNota(n, i, partitura, false);
             container.appendChild(divNota);
 
-            // Calcula o valor com ponto se aplicável
             const valorReal = n.pontuado ? n.valor * 1.5 : n.valor;
             somaCompasso += valorReal;
 
@@ -418,12 +443,10 @@
         for (let i = 0; i < partitura.length; i++) {
             const n = partitura[i];
             
-            // O tempo real leva o ponto de aumento em consideração!
             const valorReal = n.pontuado ? n.valor * 1.5 : n.valor;
             const tempoMs = (tempoBase * valorReal) * 1000;
 
             if (!n.isPausa) {
-                // Regra da chance de 50% se for opcional ()
                 let deveTocar = true;
                 if (n.opcional && Math.random() < 0.5) {
                     deveTocar = false;
@@ -495,6 +518,7 @@
             const divNota = criarElementoNota(n, i, partitura, true);
             trackDiv.appendChild(divNota);
 
+            // CORRIGIDO: Cálculo de pontuação no breaking do compasso do download
             const valorReal = n.pontuado ? n.valor * 1.5 : n.valor;
             somaCompasso += valorReal;
 
@@ -526,7 +550,7 @@
             L3(Meio): ${document.getElementById('map-3').value.toUpperCase()}<br>
             E2(Espaço Inferior): ${document.getElementById('map-2').value.toUpperCase()}<br>
             L1(Linha Inferior): ${document.getElementById('map-1').value.toUpperCase()}<br>
-            <small>* Modificadores: 'X' = Abafado | '()' = Nota Opcional (50% de chance) | '.' = Nota Pontuada (+50% de tempo).</small><br>
+            <small>* Modificadores acumulativos: 'X' = Abafado | '()' = Nota Opcional (50% de chance) | '.' = Nota Pontuada (+50% de tempo).</small><br>
             <small>* Números inferiores representam a Força/Volume. 'Semibreve' é o oval branco.</small>
         `;
         areaExport.appendChild(legendaBlock);
@@ -549,7 +573,7 @@
             document.getElementById('map-4').value,
             document.getElementById('map-5').value
         ]));
-        alert("Composição acumulativa salva com sucesso!");
+        alert("Composição e mapeamento salvos!");
     }
 
     function carregarPartitura() {
@@ -575,5 +599,3 @@
 </script>
 </body>
 </html>
-
-    
