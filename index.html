@@ -314,7 +314,7 @@
             if (n.modificador !== 'pausa') {
                 try {
                     // Ele procurará na sua pasta os arquivos: presa.mp3, chiado.mp3, etc.
-                    const som = new Audio(`sons/${n.tecnica}.mp3`);
+                    const som = new Audio(`${n.tecnica}.mp3`);
                     
                     // Ajuste de volume baseado na força (1 a 6)
                     const forca = parseInt(document.getElementById('cfg-forca').value);
