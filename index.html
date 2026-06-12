@@ -160,11 +160,11 @@
     <div class="config-box">
         <label>Mapeamento das Linhas/Espaços (Conforme o Desenho de 5 alturas)</label>
         <div class="grid-5">
-            <div><label>Pos 5 (Espaço Alto)</label><select id="map-5"><option value="chiado" selected>Chiado</option><option value="solta">Solta</option><option value="presa">Presa</option><option value="acaxixi">Caxixi</option><option value="soltachiado">S+C</option></select></div>
-            <div><label>Pos 4 (Linha Meio)</label><select id="map-4"><option value="soltachiado" selected>S+C</option><option value="solta">Solta</option><option value="presa">Presa</option><option value="chiado">Chiado</option><option value="acaxixi">Caxixi</option></select></div>
-            <div><label>Pos 3 (Espaço Baixo)</label><select id="map-3"><option value="solta" selected>Solta</option><option value="presa">Presa</option><option value="chiado">Chiado</option><option value="acaxixi">Caxixi</option><option value="soltachiado">S+C</option></select></div>
-            <div><label>Pos 2 (Linha Baixo)</label><select id="map-2"><option value="acaxixi" selected>Caxixi</option><option value="solta">Solta</option><option value="presa">Presa</option><option value="chiado">Chiado</option><option value="soltachiado">S+C</option></select></div>
-            <div><label>Pos 1 (Abaixo da L1)</label><select id="map-1"><option value="presa" selected>Presa</option><option value="solta">Solta</option><option value="chiado">Chiado</option><option value="acaxixi">Caxixi</option><option value="soltachiado">S+C</option></select></div>
+            <div><label>Pos 5 (Linha Alta)</label><select id="map-5"><option value="chiado" selected>Chiado</option><option value="solta">Solta</option><option value="presa">Presa</option><option value="acaxixi">Caxixi</option><option value="soltachiado">S+C</option></select></div>
+            <div><label>Pos 4 (Espaço Alto)</label><select id="map-4"><option value="soltachiado" selected>S+C</option><option value="solta">Solta</option><option value="presa">Presa</option><option value="chiado">Chiado</option><option value="acaxixi">Caxixi</option></select></div>
+            <div><label>Pos 3 (Linha Central)</label><select id="map-3"><option value="solta" selected>Solta</option><option value="presa">Presa</option><option value="chiado">Chiado</option><option value="acaxixi">Caxixi</option><option value="soltachiado">S+C</option></select></div>
+            <div><label>Pos 2 (Espaço Baixo)</label><select id="map-2"><option value="acaxixi" selected>Caxixi</option><option value="solta">Solta</option><option value="presa">Presa</option><option value="chiado">Chiado</option><option value="soltachiado">S+C</option></select></div>
+            <div><label>Pos 1 (Linha Baixa)</label><select id="map-1"><option value="presa" selected>Presa</option><option value="solta">Solta</option><option value="chiado">Chiado</option><option value="acaxixi">Caxixi</option><option value="soltachiado">S+C</option></select></div>
         </div>
     </div>
 
@@ -556,11 +556,11 @@
         legendaBlock.className = 'export-legend-block';
         legendaBlock.innerHTML = `
             <strong>LEGENDA DE MAPEAMENTO DAS ALTURAS (Pauta de 3 Linhas / 5 Posições):</strong><br>
-            Pos 5 (Espaço Superior): ${document.getElementById('map-5').value.toUpperCase()}<br>
-            Pos 4 (Linha do Meio): ${document.getElementById('map-4').value.toUpperCase()}<br>
-            Pos 3 (Espaço Inferior): ${document.getElementById('map-3').value.toUpperCase()}<br>
-            Pos 2 (Linha de Baixo): ${document.getElementById('map-2').value.toUpperCase()}<br>
-            Pos 1 (Espaço Abaixo da Pauta): ${document.getElementById('map-1').value.toUpperCase()}<br>
+            Pos 5 (Linha Superiror): ${document.getElementById('map-5').value.toUpperCase()}<br>
+            Pos 4 (Espaço Superior): ${document.getElementById('map-4').value.toUpperCase()}<br>
+            Pos 3 (Linha Central): ${document.getElementById('map-3').value.toUpperCase()}<br>
+            Pos 2 (Espaço Inferior): ${document.getElementById('map-2').value.toUpperCase()}<br>
+            Pos 1 (Linha Inferior): ${document.getElementById('map-1').value.toUpperCase()}<br>
             <small>* Modificadores acumulativos: 'X' no centro = Abafado (-2 Vol) | '()' = Opcional (50% chance) | '.' = Pontuado (+50% tempo).</small>
         `;
         areaExport.appendChild(legendaBlock);
