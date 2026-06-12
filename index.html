@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Berimbau Notation Studio 3.5 Pro</title>
+    <title>Berimbau Notation Studio 5.0 Cumulative Pro</title>
     <script src="https://cdnjs.cloudflare.com/ajax/libs/html2canvas/1.4.1/html2canvas.min.js"></script>
     <style>
         :root { --bg: #121212; --panel: #1e1e2e; --accent: #ff9f43; --text: #eee; }
@@ -37,9 +37,9 @@
         .volume-line { position: absolute; bottom: 12px; height: 2px; background: #999; width: 50px; z-index: 1; }
         .abafado-mark { position: absolute; top: -5px; font-weight: bold; color: #d32f2f; font-size: 12px; }
         
-        /* Divisores de Compasso - CORRIGIDO: Atravessa a pauta inteira */
-        .bar-line { width: 2px; background: #000; height: 62px; margin-top: 13px; margin-left: 10px; margin-right: 10px; display: inline-block; position: relative; z-index: 2;}
-        .final-bar-line { width: 7px; border-left: 2px solid #000; border-right: 4px solid #000; height: 62px; margin-top: 13px; margin-left: 10px; margin-right: 10px; display: inline-block; z-index: 2;}
+        /* Divisores de Compasso - CRAVADOS NAS 3 LINHAS */
+        .bar-line { width: 2px; background: #000; height: 60px; margin-top: 30px; margin-left: 10px; margin-right: 10px; display: inline-block; position: relative; z-index: 2;}
+        .final-bar-line { width: 7px; border-left: 2px solid #000; border-right: 4px solid #000; height: 60px; margin-top: 30px; margin-left: 10px; margin-right: 10px; display: inline-block; z-index: 2; box-sizing: border-box;}
         
         /* Elementos de Interface do Painel */
         .grid-2 { display: grid; grid-template-columns: 1fr 1fr; gap: 8px; }
@@ -104,6 +104,9 @@
     <div class="config-box">
         <div class="grid-2">
             <div>
+                <label>Velocidade (BPM)</label>
+                <input type="number" id="input-bpm" value="120" style="width: 100%; padding: 8px; border-radius: 5px; border: 1px solid #444; background: #222; color: white; font-weight: bold; margin-bottom: 10px; box-sizing: border-box; text-align: center;">
+
                 <label>Duração da Nota</label>
                 <div class="grid-2" id="btn-valores" style="grid-template-columns: 1fr;">
                     <button class="btn" onclick="setValor(4, false, this)">Semibreve (4)</button>
@@ -116,8 +119,10 @@
                 </div>
             </div>
             <div>
-                <label>Modificadores Especiais</label>
-                <button class="btn" id="btn-abafado" style="width:100%; margin-bottom:8px; background:#444;" onclick="toggleAbafado()">Abafado: DESLIGADO</button>
+                <label>Modificadores (Acumulativos)</label>
+                <button class="btn" id="btn-abafado" style="width:100%; margin-bottom:4px; background:#444;" onclick="toggleAbafado()">Abafado (X): DESLIGADO</button>
+                <button class="btn" id="btn-opcional" style="width:100%; margin-bottom:4px; background:#444;" onclick="toggleOpcional()">Opcional ( ): DESLIGADO</button>
+                <button class="btn" id="btn-pontuado" style="width:100%; margin-bottom:8px; background:#444;" onclick="togglePontuado()">Pontuado (.): DESLIGADO</button>
                 
                 <label>Adicionar Força Dinâmica (1-6)</label>
                 <div class="grid-5">
@@ -139,7 +144,7 @@
             <button class="btn" style="background:#fff; color:#000;" onclick="addNota('solta')">Solta</button>
             <button class="btn" style="background:gray;" onclick="addNota('chiado')">Chiado</button>
             <button class="btn" style="background:#333;" onclick="addNota('acaxixi')">Caxixi</button>
-            <button class="btn" style="background:linear-gradient(90deg, #fff 50%, #000 50%); color:red; grid-column: span 1;" onclick="addNota('soltachiado')">S+C</button>
+            <button class="btn" style="background:linear-gradient(90deg, #fff 50%, #000 50%); color:red;" onclick="addNota('soltachiado')">S+C</button>
         </div>
     </div>
 
@@ -167,8 +172,9 @@
     let valorAtual = 1;
     let isPausa = false;
     let abafadoAtivo = false;
+    let opcionalAtivo = false;
+    let pontuadoAtivo = false;
     let forcaMarcadorAtual = 3;
-    // VARIÁVEL GLOBAL PARA GERENCIAR POLIFONIA (VÁRIOS SONS)
     let somPool = []; 
 
     function renderCabaça(targetId) {
@@ -185,8 +191,22 @@
     function toggleAbafado() {
         abafadoAtivo = !abafadoAtivo;
         const btn = document.getElementById('btn-abafado');
-        if(abafadoAtivo) { btn.innerText = "Abafado: LIGADO (X)"; btn.style.background = "#d32f2f"; }
-        else { btn.innerText = "Abafado: DESLIGADO"; btn.style.background = "#444"; }
+        if(abafadoAtivo) { btn.innerText = "Abafado (X): LIGADO"; btn.style.background = "#d32f2f"; }
+        else { btn.innerText = "Abafado (X): DESLIGADO"; btn.style.background = "#444"; }
+    }
+
+    function toggleOpcional() {
+        opcionalAtivo = !opcionalAtivo;
+        const btn = document.getElementById('btn-opcional');
+        if(opcionalAtivo) { btn.innerText = "Opcional ( ): LIGADO"; btn.style.background = "#007bff"; }
+        else { btn.innerText = "Opcional ( ): DESLIGADO"; btn.style.background = "#444"; }
+    }
+
+    function togglePontuado() {
+        pontuadoAtivo = !pontuadoAtivo;
+        const btn = document.getElementById('btn-pontuado');
+        if(pontuadoAtivo) { btn.innerText = "Pontuado (.): LIGADO"; btn.style.background = "#9b59b6"; }
+        else { btn.innerText = "Pontuado (.): DESLIGADO"; btn.style.background = "#444"; }
     }
 
     function setForcaMarcador(num, btnRef) {
@@ -215,6 +235,8 @@
             linhaPos: getPosicaoByTecnica(tecnica),
             isPausa: isPausa,
             abafado: abafadoAtivo,
+            opcional: opcionalAtivo,
+            pontuado: pontuadoAtivo,
             forcaOriginal: forcaMarcadorAtual,
             mostraNumero: exigeNumeroMarcador
         });
@@ -235,13 +257,11 @@
         }
     }
 
-    // NOVA FUNÇÃO: Clica no número para editar o volume
     function editarForcaNota(id) {
         const novaForca = prompt("Digite a nova força (1 a 6):", "3");
         const numForca = parseInt(novaForca);
         
         if (numForca >= 1 && numForca <= 6) {
-            // Acha a nota e muda a força
             for(let i=0; i<partitura.length; i++) {
                 if(partitura[i].id === id) {
                     partitura[i].forcaOriginal = numForca;
@@ -271,20 +291,17 @@
         let innerSVG = '';
         
         if (n.isPausa) {
-            innerSVG = `<text x="12" y="55" font-size="38" fill="#d32f2f" font-weight="bold">/</text>`;
+            innerSVG = `<text x="14" y="55" font-size="38" fill="#d32f2f" font-weight="bold">/</text>`;
         } else {
-            if(n.valor === 4) { // Semibreve (Ovel Aberto)
+            if(n.valor === 4) { 
                 innerSVG += `<ellipse cx="18" cy="65" rx="11" ry="8" fill="white" stroke="black" stroke-width="3"/>`;
-            } else { // Outras notas com corpo preenchido
+            } else { 
                 innerSVG += `<ellipse cx="18" cy="65" rx="9" ry="6" fill="${fill}" stroke="black" stroke-width="2"/>`;
             }
 
             if (n.tecnica === 'acaxixi') innerSVG += `<circle cx="18" cy="65" r="3" fill="black"/>`;
 
-            // Haste (menos semibreve)
-            if (n.valor < 4 && n.valor <= 2) {
-                innerSVG += `<line x1="27" y1="65" x2="27" y2="15" stroke="black" stroke-width="2"/>`;
-            } else if (n.valor < 4 && n.valor > 2) { // Haste Mínima (padrão)
+            if (n.valor < 4) {
                 innerSVG += `<line x1="27" y1="65" x2="27" y2="15" stroke="black" stroke-width="2"/>`;
             }
 
@@ -294,26 +311,30 @@
                 hasBeam = true;
             }
             
-            // Colchetes livres
             if (n.valor <= 0.5 && !hasBeam) innerSVG += `<path d="M27,15 Q37,25 37,38" fill="none" stroke="black" stroke-width="2"/>`;
             if (n.valor <= 0.25 && !hasBeam) innerSVG += `<path d="M27,23 Q37,33 37,46" fill="none" stroke="black" stroke-width="2"/>`;
-            // ADICIONADO: Fusa flag
             if (n.valor <= 0.125 && !hasBeam) innerSVG += `<path d="M27,31 Q37,41 37,54" fill="none" stroke="black" stroke-width="2"/>`;
         }
 
-        // Posicionamento vertical milimétrico baseado na linha/espaço
-        // CORRIGIDO: Agora alinha exatamente nas linhas e espaços da pauta de 3 linhas.
-        // Posição 1 = Linha 1, 3 = Linha 2, 5 = Linha 3
+        // Desenha o Ponto de Aumento (.) se ativo
+        if(n.pontuado) {
+            innerSVG += `<circle cx="${n.isPausa ? 28 : 34}" cy="${n.isPausa ? 40 : 65}" r="2.5" fill="black"/>`;
+        }
+
+        // Desenha os Parênteses Opcionais () se ativos
+        if(n.opcional) {
+            innerSVG += `<text x="1" y="72" font-size="20" font-family="sans-serif" font-weight="bold" fill="black">(</text>`;
+            innerSVG += `<text x="37" y="72" font-size="20" font-family="sans-serif" font-weight="bold" fill="black">)</text>`;
+        }
+
         let mTop = 45 - (n.linhaPos - 1) * 12;
 
         const div = document.createElement('div');
         div.className = 'note-wrapper';
         div.style.marginTop = `${mTop}px`;
         
-        // CORRIGIDO: Se estiver exportando, não bota handler de click
         if(!exportView) {
             div.onclick = (e) => {
-                // Impede que clicar no número acione apagar
                 if(e.target.className === 'volume-indicator') return;
                 removerNota(n.id);
             };
@@ -325,7 +346,6 @@
             htmlExtra += `<span class="abafado-mark">X</span>`;
         }
 
-        // CORRIGIDO: Linha de volume sólida e contínua
         if(n.mostraNumero) {
             htmlExtra += `<span class="volume-indicator" ${!exportView ? `onclick="editarForcaNota(${n.id})"` : ''}>${n.forcaOriginal}</span>`;
         } else {
@@ -348,7 +368,9 @@
             const divNota = criarElementoNota(n, i, partitura, false);
             container.appendChild(divNota);
 
-            somaCompasso += n.valor;
+            // Calcula o valor com ponto se aplicável
+            const valorReal = n.pontuado ? n.valor * 1.5 : n.valor;
+            somaCompasso += valorReal;
 
             if(somaCompasso >= maxCompasso && i !== partitura.length - 1) {
                 const bar = document.createElement('div');
@@ -370,51 +392,53 @@
         renderCabaça('view-cabaca');
     }
 
-    // NOVA FUNÇÃO: Gerencia polifonia com limite de 5 notas
     function tocarAudioPolifonico(tecnica, volume) {
-        // Tenta remover sons que já acabaram do pool
         somPool = somPool.filter(s => !s.ended);
 
-       // Se o pool já tem 5, corta o mais antigo repentinamente
         if (somPool.length >= 5) {
-            const somMaisAntigo = somPool.shift(); // Tira o primeiro
+            const somMaisAntigo = somPool.shift(); 
             somMaisAntigo.pause();
             somMaisAntigo.currentTime = 0;
         }
 
-        // Cria novo som
         const som = new Audio(`${tecnica}.mp3`);
         som.volume = volume;
         som.play();
-        somPool.push(som); // Bota no pool
+        somPool.push(som); 
     }
 
     async function tocarPartitura() {
-        const bpm = 120;
+        const inputBpmVal = parseInt(document.getElementById('input-bpm').value);
+        const bpm = isNaN(inputBpmVal) ? 120 : inputBpmVal;
         const tempoBase = 60 / bpm;
         
-        // Limpa o pool se clicar em Tocar de novo
         somPool.forEach(s => { s.pause(); s.currentTime = 0; });
         somPool = [];
 
         for (let i = 0; i < partitura.length; i++) {
             const n = partitura[i];
-            const tempoMs = (tempoBase * n.valor) * 1000;
+            
+            // O tempo real leva o ponto de aumento em consideração!
+            const valorReal = n.pontuado ? n.valor * 1.5 : n.valor;
+            const tempoMs = (tempoBase * valorReal) * 1000;
 
             if (!n.isPausa) {
-                try {
-                    let forcaFinal = n.forcaOriginal;
-                    if(n.abafado) {
-                        if(n.forcaOriginal === 1) forcaFinal = 0.5;
-                        else forcaFinal = n.forcaOriginal - 1;
-                    }
-                    
-                    // Chama o novo gerenciador polifônico
-                    tocarAudioPolifonico(n.tecnica, forcaFinal / 6);
+                // Regra da chance de 50% se for opcional ()
+                let deveTocar = true;
+                if (n.opcional && Math.random() < 0.5) {
+                    deveTocar = false;
+                }
 
-                } catch (e) { console.log(e); }
-            } else {
-                // Silêncio: Não interrompe sons que estão ecoando (polifonia real)
+                if (deveTocar) {
+                    try {
+                        let forcaFinal = n.forcaOriginal;
+                        if(n.abafado) {
+                            if(n.forcaOriginal === 1) forcaFinal = 0.5;
+                            else forcaFinal = n.forcaOriginal - 1;
+                        }
+                        tocarAudioPolifonico(n.tecnica, forcaFinal / 6);
+                    } catch (e) { console.log(e); }
+                }
             }
 
             await new Promise(r => setTimeout(r, tempoMs));
@@ -468,11 +492,11 @@
 
         for(let i=0; i<partitura.length; i++) {
             const n = partitura[i];
-            // Passa exportView = true para remover clicks
             const divNota = criarElementoNota(n, i, partitura, true);
             trackDiv.appendChild(divNota);
 
-            somaCompasso += n.valor;
+            const valorReal = n.pontuado ? n.valor * 1.5 : n.valor;
+            somaCompasso += valorReal;
 
             if(somaCompasso >= 4 && i !== partitura.length - 1) {
                 somaCompasso = 0;
@@ -502,7 +526,8 @@
             L3(Meio): ${document.getElementById('map-3').value.toUpperCase()}<br>
             E2(Espaço Inferior): ${document.getElementById('map-2').value.toUpperCase()}<br>
             L1(Linha Inferior): ${document.getElementById('map-1').value.toUpperCase()}<br>
-            <small>* Números inferiores representam a Força/Volume. 'X' superior representa som Abafado. 'Semibreve' é o oval branco.</small>
+            <small>* Modificadores: 'X' = Abafado | '()' = Nota Opcional (50% de chance) | '.' = Nota Pontuada (+50% de tempo).</small><br>
+            <small>* Números inferiores representam a Força/Volume. 'Semibreve' é o oval branco.</small>
         `;
         areaExport.appendChild(legendaBlock);
 
@@ -516,20 +541,20 @@
     }
 
     function salvarPartitura() {
-        localStorage.setItem('berimbau_save_v35', JSON.stringify(partitura));
-        localStorage.setItem('berimbau_maps_v35', JSON.stringify([
+        localStorage.setItem('berimbau_save_v50', JSON.stringify(partitura));
+        localStorage.setItem('berimbau_maps_v50', JSON.stringify([
             document.getElementById('map-1').value,
             document.getElementById('map-2').value,
             document.getElementById('map-3').value,
             document.getElementById('map-4').value,
             document.getElementById('map-5').value
         ]));
-        alert("Composição e mapeamento salvos!");
+        alert("Composição acumulativa salva com sucesso!");
     }
 
     function carregarPartitura() {
-        const dataNotes = localStorage.getItem('berimbau_save_v35');
-        const dataMaps = localStorage.getItem('berimbau_maps_v35');
+        const dataNotes = localStorage.getItem('berimbau_save_v50');
+        const dataMaps = localStorage.getItem('berimbau_maps_v50');
         
         if(dataNotes) { 
             partitura = JSON.parse(dataNotes); 
@@ -550,3 +575,5 @@
 </script>
 </body>
 </html>
+
+    
