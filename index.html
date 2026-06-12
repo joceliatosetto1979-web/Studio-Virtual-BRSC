@@ -3,609 +3,598 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Berimbau Notation Studio 5.1 Pro</title>
-    <script src="https://cdnjs.cloudflare.com/ajax/libs/html2canvas/1.4.1/html2canvas.min.js"></script>
+    <title>Berimbau Notation Studio 7.0 Pro</title>
     <style>
-        :root { --bg: #121212; --panel: #1e1e2e; --accent: #ff9f43; --text: #eee; }
-        body { background: var(--bg); color: var(--text); font-family: sans-serif; display: flex; flex-direction: column; margin: 0; height: 100vh; overflow: hidden; }
+        :root {
+            --bg: #121212;
+            --panel: #1e1e2e;
+            --accent: #ff9f43;
+            --text: #eee;
+        }
+        body {
+            background: var(--bg);
+            color: var(--text);
+            font-family: sans-serif;
+            margin: 0;
+            display: flex;
+            flex-direction: column;
+            height: 100vh;
+        }
+
+        /* ÁREA DA PARTITURA (PAPEL NO TOPO) */
+        #editor-container {
+            flex: 1;
+            padding: 20px;
+            overflow-y: auto;
+            background: #222;
+            display: flex;
+            justify-content: center;
+            align-items: flex-start;
+        }
+        #sheet-paper {
+            background: #fff;
+            color: #000;
+            width: 900px;
+            min-height: 1100px; /* Formato A4 */
+            padding: 40px;
+            box-shadow: 0 10px 30px rgba(0,0,0,0.8);
+            position: relative;
+        }
+        #sheet-header {
+            text-align: center;
+            margin-bottom: 40px;
+            border-bottom: 2px solid #000;
+            padding-bottom: 10px;
+            display: none;
+        }
+        #sheet-title { font-size: 32px; font-weight: bold; margin: 0; text-transform: uppercase; }
+        #sheet-composer { font-size: 18px; font-style: italic; margin-top: 5px; text-align: right; }
+
+        svg { width: 100%; height: auto; display: block; }
+        .nota-hitbox { cursor: pointer; }
+        .nota-hitbox:hover ellipse, .nota-hitbox:hover circle { stroke: #ff9f43; stroke-width: 3px; }
+        .nota-hitbox text { user-select: none; }
+
+        /* PAINEL DE FERRAMENTAS (EMBAIXO) */
+        #toolbar {
+            background: var(--panel);
+            padding: 20px;
+            border-top: 2px solid #333;
+            max-height: 50vh;
+            overflow-y: auto;
+        }
+        .section-title { font-size: 14px; color: #aaa; margin-bottom: 8px; border-bottom: 1px solid #444; padding-bottom: 4px; }
+        .grid { display: grid; gap: 8px; margin-bottom: 20px; }
+        .grid-2 { grid-template-columns: 1fr 1fr; }
+        .grid-4 { grid-template-columns: repeat(4, 1fr); }
+        .grid-5 { grid-template-columns: repeat(5, 1fr); }
         
-        /* Área de Edição com Rolagem Horizontal Infinita */
-        #editor-container { flex: 1; padding: 15px; overflow-x: auto; overflow-y: hidden; background: #080808; display: flex; align-items: center; white-space: nowrap; }
-        #toolbar { background: var(--panel); padding: 15px; overflow-y: auto; max-height: 45vh; border-top: 2px solid #333; box-sizing: border-box; }
+        .btn {
+            background: #333; color: white; border: 1px solid #555;
+            padding: 12px; border-radius: 5px; cursor: pointer;
+            font-weight: bold; font-size: 13px; text-align: center;
+        }
+        .btn:hover { filter: brightness(1.2); }
+        .btn.active { background: var(--accent); color: black; }
         
-        /* Wrapper da Folha de Partitura */
-        .sheet-wrapper { background: #fff; color: #000; padding: 30px 20px 40px 20px; border-radius: 8px; position: relative; display: inline-flex; flex-direction: column; box-shadow: 0 4px 10px rgba(0,0,0,0.5); min-height: 240px; vertical-align: middle; }
-        .sheet-header { display: flex; gap: 30px; font-weight: bold; margin-bottom: 20px; font-size: 14px; border-bottom: 2px solid #ccc; padding-bottom: 5px; }
-        
-        /* Estrutura da Pauta (Aumentada para 140px para acomodar as notas perfeitamente) */
-        .pauta-area { position: relative; height: 140px; display: inline-flex; align-items: center; padding-left: 90px; }
-        .stave-lines { position: absolute; left: 90px; right: 0; height: 60px; display: flex; flex-direction: column; justify-content: space-between; z-index: 1; }
-        .line { height: 2px; background: #000; }
-        
-        .cabaca-container { position: absolute; left: 10px; top: 20px; width: 55px; height: 85px; z-index: 2; }
-        
-        /* Legenda Numérica Alinhada Perfeitamente com os Centros das Notas */
-        .legend-num { position: absolute; left: 70px; top: 0; height: 140px; font-weight: bold; font-size: 13px; z-index: 2; color: #000; }
-        .legend-num span { position: absolute; transform: translateY(-50%); left: 0; }
-        
-        /* Trilho de Notas */
-        .notes-track { display: flex; align-items: flex-start; z-index: 3; height: 100%; position: relative; }
-        .note-wrapper { position: relative; display: flex; flex-direction: column; align-items: center; cursor: pointer; width: 50px; height: 140px; }
-        .note-wrapper:hover { background: rgba(0,0,0,0.05); }
-        .note-svg { width: 50px; height: 140px; overflow: visible; }
-        
-        /* Linhas e Marcas de Força (Volumes 1-6) */
-        .volume-indicator { position: absolute; bottom: 5px; font-weight: bold; font-size: 13px; color: #000; background: #fff; border: 1px solid #ccc; border-radius: 3px; padding: 1px 4px; z-index: 5; cursor: pointer;}
-        .volume-indicator:hover { background: #f0f0f0; }
-        .volume-line { position: absolute; bottom: 12px; height: 2px; background: #999; width: 50px; z-index: 1; }
-        .abafado-mark { position: absolute; font-weight: bold; color: #d32f2f; font-size: 13px; transform: translate(-50%, -50%); left: 18px; }
-        
-        /* Divisores de Compasso Alinhados com as 3 Linhas (Altura 60px, Topo 40px) */
-        .bar-line { width: 2px; background: #000; height: 60px; margin-top: 40px; margin-left: 10px; margin-right: 10px; display: inline-block; position: relative; z-index: 2;}
-        .final-bar-line { width: 7px; border-left: 2px solid #000; border-right: 4px solid #000; height: 60px; margin-top: 40px; margin-left: 10px; margin-right: 10px; display: inline-block; z-index: 2; box-sizing: border-box;}
-        
-        /* Elementos de Interface do Painel */
-        .grid-2 { display: grid; grid-template-columns: 1fr 1fr; gap: 8px; }
-        .grid-5 { display: grid; grid-template-columns: repeat(5, 1fr); gap: 4px; }
-        .btn { background: #333; color: white; border: 1px solid #555; padding: 8px; border-radius: 5px; cursor: pointer; font-weight: bold; font-size: 13px; }
-        .btn.active { background: var(--accent); color: black; border-color: var(--accent); }
-        .btn-play { background: #4caf50; color: white; border: none; padding: 12px; font-size: 15px; width: 100%; margin-bottom: 10px; font-weight: bold; border-radius: 5px; }
-        .btn-action { background: #007bff; color: white; border: none; padding: 8px; width: 100%; margin-top: 4px; border-radius: 4px; font-weight: bold; }
-        
-        select { padding: 6px; background: #222; color: #fff; border: 1px solid #444; width: 100%; border-radius: 4px; }
-        .config-box { background: #2a2a35; padding: 10px; border-radius: 5px; margin-bottom: 8px; }
-        label { font-size: 0.8em; color: #aaa; display: block; margin-bottom: 4px; }
-        
-        /* Área de Exportação de Foto */
-        #export-stave-render { background: #fff; color: #000; padding: 30px; display: none; width: 800px; }
-        .export-row { position: relative; height: 160px; margin-bottom: 40px; display: flex; align-items: center; border-bottom: 1px dashed #ccc; }
-        .export-legend-block { font-size: 12px; font-family: monospace; line-height: 1.4; background: #f5f5f5; padding: 10px; border: 1px solid #ddd; margin-top: 20px; }
+        .btn-action { background: #28a745; color: white; border: none; }
+        .btn-danger { background: #dc3545; color: white; border: none; }
+        .btn-warn { background: #ffc107; color: black; border: none; }
+
+        select { padding: 10px; background: #222; color: white; border: 1px solid #555; width: 100%; border-radius: 4px; }
+        label { font-size: 0.85em; color: #aaa; display: block; margin-bottom: 4px; }
+
+        /* MODAIS (JANELAS FLUTUANTES) */
+        .modal-overlay {
+            position: fixed; top: 0; left: 0; width: 100%; height: 100%;
+            background: rgba(0,0,0,0.8); display: none; justify-content: center; align-items: center; z-index: 1000;
+        }
+        .modal {
+            background: var(--panel); padding: 25px; border-radius: 8px; width: 400px; max-width: 90%;
+            border: 1px solid #555; color: white;
+        }
+        .modal h3 { margin-top: 0; border-bottom: 1px solid #444; padding-bottom: 10px; }
+        .modal input, .modal select { width: 100%; padding: 10px; margin-bottom: 15px; background: #111; color: white; border: 1px solid #555; border-radius: 4px; box-sizing: border-box; }
+        .save-list-item { display: flex; justify-content: space-between; align-items: center; background: #333; padding: 10px; margin-bottom: 8px; border-radius: 4px; }
+        .save-list-item span { font-weight: bold; font-size: 15px; }
+
+        @media print {
+            #toolbar, .modal-overlay { display: none !important; }
+            #editor-container { background: white; padding: 0; overflow: visible; }
+            #sheet-paper { box-shadow: none; width: 100%; padding: 0; min-height: auto; }
+        }
     </style>
 </head>
 <body>
 
-<svg width="0" height="0" style="display:none;">
-    <defs>
-        <pattern id="pat-chiado" width="6" height="6" patternUnits="userSpaceOnUse" patternTransform="rotate(45)">
-            <rect width="3" height="6" fill="black" />
-            <rect x="3" width="3" height="6" fill="white" />
-        </pattern>
-        <linearGradient id="pat-soltachiado" x1="0%" y1="0%" x2="100%" y2="0%">
-            <stop offset="50%" stop-color="white"/>
-            <stop offset="50%" stop-color="black"/>
-        </linearGradient>
-    </defs>
-</svg>
-
-<div id="editor-container">
-    <div class="sheet-wrapper" id="view-sheet-wrapper">
-        <div class="sheet-header">
-            <span>Ritmo: Berimbau Studio</span>
-            <span>Compasso: 4/4</span>
-        </div>
-        
-        <div class="pauta-area">
-            <div class="legend-num">
-                <span style="top: 55px;">5</span>
-                <span style="top: 70px;">4</span>
-                <span style="top: 85px;">3</span>
-                <span style="top: 100px;">2</span>
-                <span style="top: 115px;">1</span>
+    <div id="editor-container">
+        <div id="sheet-paper">
+            <div id="sheet-header">
+                <h1 id="sheet-title">Título da Música</h1>
+                <h3 id="sheet-composer">Compositor</h3>
             </div>
-            <div class="cabaca-container" id="view-cabaca"></div>
-            
-            <div class="stave-lines" id="view-stave-lines" style="top: 40px;">
-                <div class="line"></div>
-                <div class="line"></div>
-                <div class="line"></div>
-            </div>
-            
-            <div class="notes-track" id="view-notas"></div>
-        </div>
-    </div>
-</div>
-
-<div id="export-stave-render"></div>
-
-<div id="toolbar">
-    <button class="btn-play" onclick="tocarPartitura()">▶ TOCAR COMPOSIÇÃO (Polifônico)</button>
-
-    <div class="config-box">
-        <div class="grid-2">
-            <div>
-                <label>Velocidade (BPM)</label>
-                <input type="number" id="input-bpm" value="120" style="width: 100%; padding: 8px; border-radius: 5px; border: 1px solid #444; background: #222; color: white; font-weight: bold; margin-bottom: 10px; box-sizing: border-box; text-align: center;">
-
-                <label>Duração da Nota (Mais Longa para Mais Curta)</label>
-                <div class="grid-2" id="btn-valores" style="grid-template-columns: 1fr;">
-                    <button class="btn" onclick="setValor(4, false, this)">Semibreve (4 tempos)</button>
-                    <button class="btn" onclick="setValor(2, false, this)">Mínima (2 tempos)</button>
-                    <button class="btn active" onclick="setValor(1, false, this)">Semínima (1 tempo)</button>
-                    <button class="btn" onclick="setValor(0.5, false, this)">Colcheia (1/2 tempo)</button>
-                    <button class="btn" onclick="setValor(0.25, false, this)">Semicolcheia (1/4 tempo)</button>
-                    <button class="btn" onclick="setValor(0.125, false, this)">Fusa (1/8 tempo)</button>
-                    <button class="btn" onclick="setValor(1, true, this)">Pausa (/)</button>
-                </div>
-            </div>
-            <div>
-                <label>Modificadores (Acumulativos)</label>
-                <button class="btn" id="btn-abafado" style="width:100%; margin-bottom:4px; background:#444;" onclick="toggleAbafado()">Abafado (X): DESLIGADO</button>
-                <button class="btn" id="btn-opcional" style="width:100%; margin-bottom:4px; background:#444;" onclick="toggleOpcional()">Opcional ( ): DESLIGADO</button>
-                <button class="btn" id="btn-pontuado" style="width:100%; margin-bottom:8px; background:#444;" onclick="togglePontuado()">Pontuado (.): DESLIGADO</button>
-                
-                <label>Adicionar Força Dinâmica (1-6)</label>
-                <div class="grid-5">
-                    <button class="btn btn-f" onclick="setForcaMarcador(1, this)">1</button>
-                    <button class="btn btn-f" onclick="setForcaMarcador(2, this)">2</button>
-                    <button class="btn btn-f active" onclick="setForcaMarcador(3, this)">3</button>
-                    <button class="btn btn-f" onclick="setForcaMarcador(4, this)">4</button>
-                    <button class="btn btn-f" onclick="setForcaMarcador(5, this)">5</button>
-                    <button class="btn btn-f" onclick="setForcaMarcador(6, this)">6</button>
-                </div>
-            </div>
+            <div id="svg-container"></div>
         </div>
     </div>
 
-    <div class="config-box">
-        <label>Clique para inserir na pauta (Onde escolheu abaixo):</label>
-        <div class="grid-5">
-            <button class="btn" style="background:#000;" onclick="addNota('presa')">Presa</button>
+    <div id="toolbar">
+        <div class="grid grid-2">
+            <div>
+                <div class="section-title">Valores das Notas e Modificadores</div>
+                <div class="grid grid-4" id="btn-valores">
+                    <button class="btn" onclick="setValor(0.5, false, this)">Colcheia (1/2)</button>
+                    <button class="btn active" onclick="setValor(0.25, false, this)">Semicolcheia (1/4)</button>
+                    <button class="btn" onclick="setValor(0.125, false, this)">Fusa (1/8)</button>
+                    <button class="btn" id="btn-pausa" style="background:#552222;" onclick="toggleMod('pausa')">Pausa ( / )</button>
+                </div>
+            </div>
+            <div>
+                <div class="section-title">Modificadores Adicionais</div>
+                <div class="grid grid-3" style="grid-template-columns: 1fr 1fr 1fr;">
+                    <button class="btn" id="btn-abafado" onclick="toggleMod('abafado')">Abafado (X)</button>
+                    <button class="btn" id="btn-opcional" onclick="toggleMod('opcional')">Opcional ( )</button>
+                    <button class="btn" id="btn-pontuado" onclick="toggleMod('pontuado')">Pontuado (.)</button>
+                </div>
+            </div>
+        </div>
+
+        <div class="section-title">Clique para inserir na pauta (Onde escolheu abaixo):</div>
+        <div class="grid grid-5">
+            <button class="btn" style="background:#000; color:white;" onclick="addNota('presa')">Presa</button>
             <button class="btn" style="background:#fff; color:#000;" onclick="addNota('solta')">Solta</button>
-            <button class="btn" style="background:gray;" onclick="addNota('chiado')">Chiado</button>
-            <button class="btn" style="background:#333;" onclick="addNota('acaxixi')">Caxixi</button>
+            <button class="btn" style="background:gray; color:white;" onclick="addNota('chiado')">Chiado</button>
+            <button class="btn" style="background:#444; color:white;" onclick="addNota('caxixi')">Caxixi</button>
             <button class="btn" style="background:linear-gradient(90deg, #fff 50%, #000 50%); color:red;" onclick="addNota('soltachiado')">S+C</button>
         </div>
-    </div>
 
-    <div class="config-box">
-        <label>Mapeamento das Linhas/Espaços (Conforme o Desenho de 5 alturas)</label>
-        <div class="grid-5">
-            <div><label>Pos 5 (Linha Alta)</label><select id="map-5"><option value="chiado" selected>Chiado</option><option value="solta">Solta</option><option value="presa">Presa</option><option value="acaxixi">Caxixi</option><option value="soltachiado">S+C</option></select></div>
-            <div><label>Pos 4 (Espaço Alto)</label><select id="map-4"><option value="soltachiado" selected>S+C</option><option value="solta">Solta</option><option value="presa">Presa</option><option value="chiado">Chiado</option><option value="acaxixi">Caxixi</option></select></div>
-            <div><label>Pos 3 (Linha Central)</label><select id="map-3"><option value="solta" selected>Solta</option><option value="presa">Presa</option><option value="chiado">Chiado</option><option value="acaxixi">Caxixi</option><option value="soltachiado">S+C</option></select></div>
-            <div><label>Pos 2 (Espaço Baixo)</label><select id="map-2"><option value="acaxixi" selected>Caxixi</option><option value="solta">Solta</option><option value="presa">Presa</option><option value="chiado">Chiado</option><option value="soltachiado">S+C</option></select></div>
-            <div><label>Pos 1 (Linha Baixa)</label><select id="map-1"><option value="presa" selected>Presa</option><option value="solta">Solta</option><option value="chiado">Chiado</option><option value="acaxixi">Caxixi</option><option value="soltachiado">S+C</option></select></div>
+        <div class="section-title">Mapeamento das Linhas/Espaços (Conforme o Desenho de 5 alturas)</div>
+        <div class="grid grid-5">
+            <div><label>Pos 5 (Linha Cima)</label>
+                <select id="map-5" onchange="renderizar()"><option value="chiado">Chiado</option><option value="solta">Solta</option><option value="presa">Presa</option><option value="caxixi">Caxixi</option><option value="soltachiado">S+C</option></select>
+            </div>
+            <div><label>Pos 4 (Espaço)</label>
+                <select id="map-4" onchange="renderizar()"><option value="soltachiado" selected>S+C</option><option value="solta">Solta</option><option value="chiado">Chiado</option><option value="presa">Presa</option><option value="caxixi">Caxixi</option></select>
+            </div>
+            <div><label>Pos 3 (Linha Meio)</label>
+                <select id="map-3" onchange="renderizar()"><option value="chiado" selected>Chiado</option><option value="solta">Solta</option><option value="presa">Presa</option><option value="caxixi">Caxixi</option><option value="soltachiado">S+C</option></select>
+            </div>
+            <div><label>Pos 2 (Espaço)</label>
+                <select id="map-2" onchange="renderizar()"><option value="solta" selected>Solta</option><option value="chiado">Chiado</option><option value="presa">Presa</option><option value="caxixi">Caxixi</option><option value="soltachiado">S+C</option></select>
+            </div>
+            <div><label>Pos 1 (Linha Baixo)</label>
+                <select id="map-1" onchange="renderizar()"><option value="presa" selected>Presa</option><option value="solta">Solta</option><option value="chiado">Chiado</option><option value="caxixi">Caxixi</option><option value="soltachiado">S+C</option></select>
+            </div>
+        </div>
+
+        <div class="grid grid-4" style="margin-top: 10px;">
+            <button class="btn btn-action" onclick="abrirModalSalvar()">💾 Salvar Composição</button>
+            <button class="btn btn-warn" onclick="abrirModalCarregar()">📂 Carregar Antiga</button>
+            <button class="btn btn-danger" onclick="limparTudo()">🗑 Limpar Pauta</button>
+            <button class="btn" style="background:#007bff;" onclick="imprimir()">🖨 Imprimir / PDF</button>
         </div>
     </div>
 
-    <div class="grid-2">
-        <button class="btn-action" style="background:#28a745;" onclick="salvarPartitura()">💾 Salvar Composição</button>
-        <button class="btn-action" style="background:#17a2b8;" onclick="carregarPartitura()">📂 Carregar Antiga</button>
-        <button class="btn-action" style="background:#e056fd; grid-column: span 2;" onclick="baixarImagemOtimizada()">📸 Baixar como Imagem (Quebra de Linhas + Legenda)</button>
-        <button class="btn-action" style="background:#6c757d; grid-column: span 2;" onclick="limparTudo()">🗑 Limpar Tudo</button>
+    <div class="modal-overlay" id="modal-salvar">
+        <div class="modal">
+            <h3>Salvar Partitura</h3>
+            <label>Nome da Música (Obrigatório):</label>
+            <input type="text" id="input-nome" placeholder="Ex: Toque de São Bento Grande">
+            <label>Compositor (Opcional):</label>
+            <input type="text" id="input-compositor" placeholder="Ex: Mestre Bimba">
+            <div class="grid grid-2">
+                <button class="btn btn-danger" onclick="fecharModais()">Cancelar</button>
+                <button class="btn btn-action" onclick="confirmarSalvar()">Salvar ✅</button>
+            </div>
+        </div>
     </div>
-</div>
+
+    <div class="modal-overlay" id="modal-carregar">
+        <div class="modal">
+            <h3>Partituras Salvas</h3>
+            <div id="lista-salvos" style="max-height: 250px; overflow-y: auto; margin-bottom:15px;"></div>
+            <button class="btn btn-danger" style="width:100%;" onclick="fecharModais()">Fechar</button>
+        </div>
+    </div>
+
+    <div class="modal-overlay" id="modal-editar-nota">
+        <div class="modal">
+            <h3>Opções da Nota</h3>
+            <p style="font-size: 14px; margin-bottom: 20px;">O que você deseja fazer com esta nota clicada?</p>
+            
+            <label>Substituir por outra técnica:</label>
+            <select id="edit-tecnica">
+                <option value="presa">Presa</option>
+                <option value="solta">Solta</option>
+                <option value="chiado">Chiado</option>
+                <option value="caxixi">Caxixi</option>
+                <option value="soltachiado">S+C</option>
+            </select>
+            
+            <div class="grid grid-2" style="margin-bottom: 10px;">
+                <button class="btn" style="background:#007bff;" onclick="confirmarEdicaoNota()">Substituir</button>
+                <button class="btn btn-danger" onclick="transformarEmPausa()">Deletar (Virar Pausa)</button>
+            </div>
+            <button class="btn" style="width:100%; background:#555;" onclick="fecharModais()">Cancelar</button>
+        </div>
+    </div>
 
 <script>
+    // ESTADOS GLOBAIS
     let partitura = [];
-    let valorAtual = 1;
-    let isPausa = false;
-    let abafadoAtivo = false;
-    let opcionalAtivo = false;
-    let pontuadoAtivo = false;
-    let forcaMarcadorAtual = 3;
-    let somPool = []; 
+    let valorAtual = 0.25; 
+    let mods = { abafado: false, opcional: false, pontuado: false, pausa: false };
+    
+    // Cabaça (0 a 4) -> 0=Todas, 1=Viola(esq), 2=Médio(esq-metade), 3=Gunga, 4=Berra Boi
+    let cabacaState = 4;
+    let currentTitle = "";
+    let currentComposer = "";
+    let notaSendoEditada = null;
 
-    function renderCabaça(targetId) {
-        document.getElementById(targetId).innerHTML = `<svg viewBox="0 0 100 100"><circle cx="50" cy="50" r="42" fill="white" stroke="black" stroke-width="5"/><path d="M50,50 L8,50 A42,42 0 1,1 50,92 Z" fill="black"/></svg>`;
-    }
-
-    function setValor(val, pausa, btnRef) {
-        isPausa = pausa;
-        valorAtual = parseFloat(val);
-        document.querySelectorAll('#btn-valores .btn').forEach(b => b.classList.remove('active'));
-        btnRef.classList.add('active');
-    }
-
-    function toggleAbafado() {
-        abafadoAtivo = !abafadoAtivo;
-        const btn = document.getElementById('btn-abafado');
-        if(abafadoAtivo) { btn.innerText = "Abafado (X): LIGADO"; btn.style.background = "#d32f2f"; }
-        else { btn.innerText = "Abafado (X): DESLIGADO"; btn.style.background = "#444"; }
-    }
-
-    function toggleOpcional() {
-        opcionalAtivo = !opcionalAtivo;
-        const btn = document.getElementById('btn-opcional');
-        if(opcionalAtivo) { btn.innerText = "Opcional ( ): LIGADO"; btn.style.background = "#007bff"; }
-        else { btn.innerText = "Opcional ( ): DESLIGADO"; btn.style.background = "#444"; }
-    }
-
-    function togglePontuado() {
-        pontuadoAtivo = !pontuadoAtivo;
-        const btn = document.getElementById('btn-pontuado');
-        if(pontuadoAtivo) { btn.innerText = "Pontuado (.): LIGADO"; btn.style.background = "#9b59b6"; }
-        else { btn.innerText = "Pontuado (.): DESLIGADO"; btn.style.background = "#444"; }
-    }
-
-    function setForcaMarcador(num, btnRef) {
-        forcaMarcadorAtual = num;
-        document.querySelectorAll('.btn-f').forEach(b => b.classList.remove('active'));
-        btnRef.classList.add('active');
-    }
-
-    function getPosicaoByTecnica(tecnica) {
+    // Função auxiliar para mapeamento
+    function getPosicao(tecnica) {
         for(let i=1; i<=5; i++) {
             if(document.getElementById(`map-${i}`).value === tecnica) return i;
         }
         return 3;
     }
 
-    function addNota(tecnica) {
-        let exigeNumeroMarcador = false;
-        if(partitura.length === 0 || partitura[partitura.length-1].forcaOriginal !== forcaMarcadorAtual) {
-            exigeNumeroMarcador = true;
-        }
+    function getNomeTecnica(val) {
+        const nomes = { 'presa':'Presa', 'solta':'Solta', 'chiado':'Chiado', 'caxixi':'Caxixi', 'soltachiado':'S+C' };
+        return nomes[val] || val;
+    }
 
+    // INTERAÇÃO DOS BOTÕES
+    function setValor(val, isPausa, btn) {
+        valorAtual = val;
+        document.querySelectorAll('#btn-valores .btn').forEach(b => {
+            if(b.id !== 'btn-pausa') b.classList.remove('active');
+        });
+        btn.classList.add('active');
+    }
+
+    function toggleMod(tipo) {
+        mods[tipo] = !mods[tipo];
+        const btn = document.getElementById(`btn-${tipo}`);
+        if(mods[tipo]) { 
+            btn.style.background = tipo === 'pausa' ? '#dc3545' : '#ff9f43'; 
+            btn.style.color = tipo === 'pausa' ? 'white' : 'black'; 
+        } else { 
+            btn.style.background = tipo === 'pausa' ? '#552222' : '#333'; 
+            btn.style.color = 'white'; 
+        }
+    }
+
+    function addNota(tecnica) {
         partitura.push({
             id: Date.now(),
             tecnica: tecnica,
             valor: valorAtual,
-            linhaPos: getPosicaoByTecnica(tecnica),
-            isPausa: isPausa,
-            abafado: abafadoAtivo,
-            opcional: opcionalAtivo,
-            pontuado: pontuadoAtivo,
-            forcaOriginal: forcaMarcadorAtual,
-            mostraNumero: exigeNumeroMarcador
+            isPausa: mods.pausa, // Se o botão pausa estiver ligado, a nota já entra como pausa
+            linhaPos: getPosicao(tecnica),
+            abafado: mods.abafado,
+            opcional: mods.opcional,
+            pontuado: mods.pontuado
         });
-
         renderizar();
-        
-        setTimeout(() => {
-            const container = document.getElementById('editor-container');
-            container.scrollLeft = container.scrollWidth;
-        }, 50);
-    }
-
-    function removerNota(id) {
-        if(confirm("Deseja apagar esta nota?")) {
-            partitura = partitura.filter(n => n.id !== id);
-            recalcularMarcadoresForca();
-            renderizar();
-        }
-    }
-
-    function editarForcaNota(id) {
-        const novaForca = prompt("Digite a nova força (1 a 6):", "3");
-        const numForca = parseInt(novaForca);
-        
-        if (numForca >= 1 && numForca <= 6) {
-            for(let i=0; i<partitura.length; i++) {
-                if(partitura[i].id === id) {
-                    partitura[i].forcaOriginal = numForca;
-                    break;
-                }
-            }
-            recalcularMarcadoresForca();
-            renderizar();
-        } else if (novaForca !== null) {
-            alert("Força inválida! Use um número de 1 a 6.");
-        }
-    }
-
-    function recalcularMarcadoresForca() {
-        for(let i=0; i<partitura.length; i++) {
-            if(i===0) partitura[i].mostraNumero = true;
-            else partitura[i].mostraNumero = (partitura[i].forcaOriginal !== partitura[i-1].forcaOriginal);
-        }
-    }
-
-    // CORRIGIDO: Coordenadas exatas das 5 alturas baseadas no seu desenho de 3 linhas!
-    function getTargetCy(linhaPos) {
-        if (linhaPos === 5) return 40;  // Espaço de cima
-        if (linhaPos === 4) return 55;  // Linha do meio
-        if (linhaPos === 3) return 70;  // Espaço de baixo
-        if (linhaPos === 2) return 85; // Linha de baixo
-        if (linhaPos === 1) return 100; // Espaço totalmente abaixo da pauta
-        return 115;
-    }
-
-    function criarElementoNota(n, index, arr, exportView) {
-        let fill = "white";
-        if(n.tecnica === 'presa') fill = "black";
-        if(n.tecnica === 'chiado') fill = "url(#pat-chiado)";
-        if(n.tecnica === 'soltachiado') fill = "url(#pat-soltachiado)";
-
-        const targetCy = getTargetCy(n.linhaPos);
-        let innerSVG = '';
-        
-        // Verifica conexão automática de traço (beam) para colcheias/menores
-        let hasBeam = false;
-        if (n.valor <= 0.5 && index < arr.length - 1 && arr[index+1].valor <= 0.5 && !arr[index+1].isPausa) {
-            hasBeam = true;
-        }
-        
-        if (n.isPausa) {
-            // Pausa centralizada na pauta
-            innerSVG = `<text x="14" y="80" font-size="38" fill="#d32f2f" font-weight="bold">/</text>`;
-        } else {
-            // Desenho perfeito do formato oval da cabeça da nota
-            if(n.valor === 4) { 
-                innerSVG += `<ellipse cx="18" cy="${targetCy}" rx="11" ry="8" fill="white" stroke="black" stroke-width="3"/>`;
-            } else { 
-                innerSVG += `<ellipse cx="18" cy="${targetCy}" rx="9" ry="6" fill="${fill}" stroke="black" stroke-width="2"/>`;
-            }
-
-            if (n.tecnica === 'acaxixi') innerSVG += `<circle cx="18" cy="${targetCy}" r="3" fill="black"/>`;
-
-            // Desenho da Haste (Semibreve não tem)
-            if (n.valor < 4) {
-                let stemTop = targetCy - 45;
-                if (hasBeam) stemTop = 30; // Alinha haste perfeitamente com a barra conectora fixa
-                innerSVG += `<line x1="27" y1="${targetCy}" x2="27" y2="${stemTop}" stroke="black" stroke-width="2"/>`;
-            }
-
-            // Barra conectora superior (Beams)
-            if (hasBeam) {
-                innerSVG += `<rect x="27" y="30" width="50" height="4" fill="black" />`;
-            } else {
-                // Colchetes normais caso a nota esteja isolada
-                let stemTop = targetCy - 45;
-                if (n.valor <= 0.5) innerSVG += `<path d="M27,${stemTop} Q37,${stemTop+10} 37,${stemTop+23}" fill="none" stroke="black" stroke-width="2"/>`;
-                if (n.valor <= 0.25) innerSVG += `<path d="M27,${stemTop+8} Q37,${stemTop+18} 37,${stemTop+31}" fill="none" stroke="black" stroke-width="2"/>`;
-                if (n.valor <= 0.125) innerSVG += `<path d="M27,${stemTop+16} Q37,${stemTop+26} 37,${stemTop+39}" fill="none" stroke="black" stroke-width="2"/>`;
-            }
-        }
-
-        // Modificador de Ponto de aumento (.)
-        if(n.pontuado) {
-            innerSVG += `<circle cx="${n.isPausa ? 28 : 34}" cy="${n.isPausa ? 65 : targetCy}" r="2.5" fill="black"/>`;
-        }
-
-            // Modificador Opcional ()
-        if(n.opcional) {
-            innerSVG += `<text x="1" y="${targetCy + 7}" font-size="20" font-family="sans-serif" font-weight="bold" fill="black">(</text>`;
-            innerSVG += `<text x="37" y="${targetCy + 7}" font-size="20" font-family="sans-serif" font-weight="bold" fill="black">)</text>`;
-        }
-
-        const div = document.createElement('div');
-        div.className = 'note-wrapper';
-        
-        if(!exportView) {
-            div.onclick = (e) => {
-                if(e.target.className === 'volume-indicator') return;
-                removerNota(n.id);
-            };
-        }
-        
-        let htmlExtra = `<svg class="note-svg">${innerSVG}</svg>`;
-        
-        // Modificador Abafado (X) centralizado em cima da cabeça da nota
-        if(n.abafado && !n.isPausa) {
-            htmlExtra += `<span class="abafado-mark" style="top: ${targetCy}px;">X</span>`;
-        }
-
-        if(n.mostraNumero) {
-            htmlExtra += `<span class="volume-indicator" ${!exportView ? `onclick="editarForcaNota(${n.id})"` : ''}>${n.forcaOriginal}</span>`;
-        } else {
-            htmlExtra += `<div class="volume-line"></div>`;
-        }
-
-        div.innerHTML = htmlExtra;
-        return div;
-    }
-
-    function renderizar() {
-        const container = document.getElementById('view-notas');
-        container.innerHTML = '';
-        
-        let somaCompasso = 0;
-        const maxCompasso = 4;
-
-        for(let i = 0; i < partitura.length; i++) {
-            const n = partitura[i];
-            const divNota = criarElementoNota(n, i, partitura, false);
-            container.appendChild(divNota);
-
-            const valorReal = n.pontuado ? n.valor * 1.5 : n.valor;
-            somaCompasso += valorReal;
-
-            if(somaCompasso >= maxCompasso && i !== partitura.length - 1) {
-                const bar = document.createElement('div');
-                bar.className = 'bar-line';
-                container.appendChild(bar);
-                somaCompasso = 0;
-            }
-        }
-
-        if(partitura.length > 0) {
-            const endBar = document.createElement('div');
-            endBar.className = 'final-bar-line';
-            container.appendChild(endBar);
-        }
-
-        const larguraTrilho = container.offsetWidth + 200;
-        document.getElementById('view-stave-lines').style.width = `${larguraTrilho}px`;
-        document.getElementById('view-sheet-wrapper').style.width = `${larguraTrilho}px`;
-        renderCabaça('view-cabaca');
-    }
-
-    function tocarAudioPolifonico(tecnica, volume) {
-        somPool = somPool.filter(s => !s.ended);
-
-        if (somPool.length >= 5) {
-            const somMaisAntigo = somPool.shift(); 
-            somMaisAntigo.pause();
-            somMaisAntigo.currentTime = 0;
-        }
-
-        const som = new Audio(`${tecnica}.mp3`);
-        som.volume = volume;
-        som.play();
-        somPool.push(som); 
-    }
-
-    async function tocarPartitura() {
-        const inputBpmVal = parseInt(document.getElementById('input-bpm').value);
-        const bpm = isNaN(inputBpmVal) ? 120 : inputBpmVal;
-        const tempoBase = 60 / bpm;
-        
-        somPool.forEach(s => { s.pause(); s.currentTime = 0; });
-        somPool = [];
-
-        for (let i = 0; i < partitura.length; i++) {
-            const n = partitura[i];
-            
-            const valorReal = n.pontuado ? n.valor * 1.5 : n.valor;
-            const tempoMs = (tempoBase * valorReal) * 1000;
-
-            if (!n.isPausa) {
-                let deveTocar = true;
-                if (n.opcional && Math.random() < 0.5) {
-                    deveTocar = false;
-                }
-
-                if (deveTocar) {
-                    try {
-                        let forcaFinal = n.forcaOriginal;
-                        // CORRIGIDO: Reduzindo -2 para o som abafado ficar muito mais audível!
-                        if(n.abafado) {
-                            forcaFinal = n.forcaOriginal - 2;
-                            if(forcaFinal < 1) forcaFinal = 0.5; 
-                        }
-                        tocarAudioPolifonico(n.tecnica, forcaFinal / 6);
-                    } catch (e) { console.log(e); }
-                }
-            }
-
-            await new Promise(r => setTimeout(r, tempoMs));
-        }
-    }
-
-    function baixarImagemOtimizada() {
-        if(partitura.length === 0) { alert("Adicione notas primeiro!"); return; }
-        
-        const areaExport = document.getElementById('export-stave-render');
-        areaExport.innerHTML = '';
-        areaExport.style.display = 'block';
-
-        const header = document.createElement('div');
-        header.style.textAlign = 'center'; header.style.fontWeight = 'bold';
-        header.style.fontSize = '20px'; header.style.marginBottom = '20px';
-        header.innerText = "ESTÚDIO DE NOTAÇÃO DE BERIMBAU - Partitura Gerada";
-        areaExport.appendChild(header);
-
-        let rowDiv = null; let trackDiv = null;
-        let staveLinesDiv = null; let somaCompasso = 0;
-        let indexLinha = 1;
-
-        function novaLinhaExport() {
-            rowDiv = document.createElement('div');
-            rowDiv.className = 'export-row';
-            
-            const leg = document.createElement('div');
-            leg.className = 'legend-num';
-            leg.style.left = '10px';
-            leg.innerHTML = `
-                <span style="top: 55px;">5</span>
-                <span style="top: 70px;">4</span>
-                <span style="top: 85px;">3</span>
-                <span style="top: 100px;">2</span>
-                <span style="top: 115px;">1</span>
-            `;
-            rowDiv.appendChild(leg);
-
-            staveLinesDiv = document.createElement('div');
-            staveLinesDiv.className = 'stave-lines';
-            staveLinesDiv.style.left = '35px';
-            staveLinesDiv.style.width = '740px';
-            staveLinesDiv.style.top = '40px';
-            staveLinesDiv.innerHTML = `<div class="line"></div><div class="line"></div><div class="line"></div>`;
-            rowDiv.appendChild(staveLinesDiv);
-
-            trackDiv = document.createElement('div');
-            trackDiv.className = 'notes-track';
-            trackDiv.style.paddingLeft = '45px';
-            rowDiv.appendChild(trackDiv);
-
-            areaExport.appendChild(rowDiv);
-            indexLinha++;
-        }
-
-        novaLinhaExport();
-
-        for(let i=0; i<partitura.length; i++) {
-            const n = partitura[i];
-            const divNota = criarElementoNota(n, i, partitura, true);
-            trackDiv.appendChild(divNota);
-
-            const valorReal = n.pontuado ? n.valor * 1.5 : n.valor;
-            somaCompasso += valorReal;
-
-            if(somaCompasso >= 4 && i !== partitura.length - 1) {
-                somaCompasso = 0;
-                if(indexLinha % 2 === 0) { 
-                    const bar = document.createElement('div');
-                    bar.className = 'bar-line';
-                    trackDiv.appendChild(bar);
-                    novaLinhaExport();
-                } else {
-                    const bar = document.createElement('div');
-                    bar.className = 'bar-line';
-                    trackDiv.appendChild(bar);
-                }
-            }
-        }
-
-        const endBar = document.createElement('div');
-        endBar.className = 'final-bar-line';
-        trackDiv.appendChild(endBar);
-
-        const legendaBlock = document.createElement('div');
-        legendaBlock.className = 'export-legend-block';
-        legendaBlock.innerHTML = `
-            <strong>LEGENDA DE MAPEAMENTO DAS ALTURAS (Pauta de 3 Linhas / 5 Posições):</strong><br>
-            Pos 5 (Linha Superiror): ${document.getElementById('map-5').value.toUpperCase()}<br>
-            Pos 4 (Espaço Superior): ${document.getElementById('map-4').value.toUpperCase()}<br>
-            Pos 3 (Linha Central): ${document.getElementById('map-3').value.toUpperCase()}<br>
-            Pos 2 (Espaço Inferior): ${document.getElementById('map-2').value.toUpperCase()}<br>
-            Pos 1 (Linha Inferior): ${document.getElementById('map-1').value.toUpperCase()}<br>
-            <small>* Modificadores acumulativos: 'X' no centro = Abafado (-2 Vol) | '()' = Opcional (50% chance) | '.' = Pontuado (+50% tempo).</small>
-        `;
-        areaExport.appendChild(legendaBlock);
-
-        html2canvas(areaExport, {backgroundColor: '#ffffff'}).then(canvas => {
-            let link = document.createElement('a');
-            link.download = 'partitura-berimbau-ajustada.png';
-            link.href = canvas.toDataURL();
-            link.click();
-            areaExport.style.display = 'none';
-        });
-    }
-
-    function salvarPartitura() {
-        localStorage.setItem('berimbau_save_v51', JSON.stringify(partitura));
-        localStorage.setItem('berimbau_maps_v51', JSON.stringify([
-            document.getElementById('map-1').value,
-            document.getElementById('map-2').value,
-            document.getElementById('map-3').value,
-            document.getElementById('map-4').value,
-            document.getElementById('map-5').value
-        ]));
-        alert("Composição e alturas salvas!");
-    }
-
-    function carregarPartitura() {
-        const dataNotes = localStorage.getItem('berimbau_save_v51');
-        const dataMaps = localStorage.getItem('berimbau_maps_v51');
-        
-        if(dataNotes) { 
-            partitura = JSON.parse(dataNotes); 
-            if(dataMaps) {
-                const maps = JSON.parse(dataMaps);
-                for(let i=0; i<5; i++) document.getElementById(`map-${i+1}`).value = maps[i];
-            }
-            renderizar(); 
-        } else { alert("Nenhum registro encontrado."); }
     }
 
     function limparTudo() {
-        partitura = [];
+        if(confirm("Tem certeza que deseja apagar toda a partitura? Esta ação não pode ser desfeita.")) {
+            partitura = [];
+            currentTitle = "";
+            currentComposer = "";
+            document.getElementById('sheet-header').style.display = 'none';
+            renderizar();
+        }
+    }
+
+    function toggleCabaca() {
+        // Ciclo: 4 -> 0 -> 1 -> 2 -> 3 -> 4
+        cabacaState = cabacaState === 4 ? 0 : cabacaState + 1;
         renderizar();
     }
 
-    renderCabaça('view-cabaca');
+    // EDIÇÃO DE NOTAS
+    function abrirEdicao(id) {
+        notaSendoEditada = partitura.find(x => x.id === id);
+        if(!notaSendoEditada) return;
+        
+        document.getElementById('edit-tecnica').value = notaSendoEditada.tecnica;
+        document.getElementById('modal-editar-nota').style.display = 'flex';
+    }
+
+    function confirmarEdicaoNota() {
+        if(notaSendoEditada) {
+            notaSendoEditada.tecnica = document.getElementById('edit-tecnica').value;
+            notaSendoEditada.linhaPos = getPosicao(notaSendoEditada.tecnica);
+            notaSendoEditada.isPausa = false;
+            renderizar();
+        }
+        fecharModais();
+    }
+
+    function transformarEmPausa() {
+        if(notaSendoEditada) {
+            notaSendoEditada.isPausa = true;
+            renderizar();
+        }
+        fecharModais();
+    }
+
+    // RENDERIZAÇÃO DO SVG
+    function renderizar() {
+        const maxWidth = 820; 
+        const marginX = 20;
+        const lineSpacing = 15; // Distância exata entre linhas e espaços
+        const noteSpacing = 55; 
+        
+        let currentX = marginX + 80; // Espaço inicial da pauta
+        let currentY = 50; 
+        let pautasDesenhadas = 0;
+        
+        let svgHTML = `
+        <svg width="${maxWidth + 40}" height="100%" id="main-svg" style="min-height: 800px;">
+            <defs>
+                <pattern id="pat-chiado" width="4" height="20" patternUnits="userSpaceOnUse">
+                    <line x1="2" y1="0" x2="2" y2="20" stroke="black" stroke-width="1.5"/>
+                </pattern>
+                <linearGradient id="pat-sc" x1="0%" y1="0%" x2="100%" y2="0%">
+                    <stop offset="50%" stop-color="white" />
+                    <stop offset="50%" stop-color="black" />
+                </linearGradient>
+            </defs>
+        `;
+
+        function drawStaffBlock(y) {
+            pautasDesenhadas++;
+            return `
+                <line x1="${marginX}" y1="${y}" x2="${maxWidth}" y2="${y}" stroke="black" stroke-width="1.5"/>
+                <line x1="${marginX}" y1="${y + lineSpacing*2}" x2="${maxWidth}" y2="${y + lineSpacing*2}" stroke="black" stroke-width="1.5"/>
+                <line x1="${marginX}" y1="${y + lineSpacing*4}" x2="${maxWidth}" y2="${y + lineSpacing*4}" stroke="black" stroke-width="1.5"/>
+                
+                <line x1="${marginX}" y1="${y}" x2="${marginX}" y2="${y + lineSpacing*4}" stroke="black" stroke-width="4"/>
+                <line x1="${maxWidth}" y1="${y}" x2="${maxWidth}" y2="${y + lineSpacing*4}" stroke="black" stroke-width="4"/>
+            `;
+        }
+
+        // Desenha a primeira pauta
+        svgHTML += drawStaffBlock(currentY);
+
+        // LÓGICA DA CABAÇA (O da esquerda é o preto)
+        let cx = marginX + 30;
+        let cy = currentY + (lineSpacing * 2);
+        let cabacaPath = "";
+        
+        if(cabacaState === 1) { // 1/4 (Viola) - Fatiado na esquerda
+            cabacaPath = `<path d="M 0 0 L 0 -16 A 16 16 0 0 0 -16 0 Z" fill="black"/>`;
+        } else if(cabacaState === 2) { // 2/4 (Médio) - Metade esquerda preta
+            cabacaPath = `<path d="M 0 -16 A 16 16 0 0 0 0 16 Z" fill="black"/>`;
+        } else if(cabacaState === 3) { // 3/4 (Gunga) - Metade esq + Quadrante inferior dir
+            cabacaPath = `<path d="M 0 -16 A 16 16 0 0 0 0 16 A 16 16 0 0 0 16 0 L 0 0 Z" fill="black"/>`;
+        } else if(cabacaState === 4) { // 4/4 (Berra boi) - Toda Preta
+            cabacaPath = `<circle cx="0" cy="0" r="16" fill="black"/>`;
+        }
+
+        svgHTML += `
+            <g transform="translate(${cx}, ${cy})" onclick="toggleCabaca()" style="cursor:pointer;">
+                <circle cx="0" cy="0" r="16" fill="white" stroke="black" stroke-width="2"/>
+                ${cabacaPath}
+            </g>
+        `;
+
+        function getNotaY(pos, startY) {
+            if(pos === 5) return startY;                   // Linha 5
+            if(pos === 4) return startY + lineSpacing;     // Espaço 4
+            if(pos === 3) return startY + lineSpacing*2;   // Linha 3
+            if(pos === 2) return startY + lineSpacing*3;   // Espaço 2
+            if(pos === 1) return startY + lineSpacing*4;   // Linha 1
+            return startY + lineSpacing*2;
+        }
+
+        // DESENHAR NOTAS
+        partitura.forEach((nota, index) => {
+            // Word Wrap (Quebra de pauta contínua)
+            if (currentX > maxWidth - 40) {
+                // Se é a primeira vez que quebra a linha, precisamos dar espaço extra para as legendas!
+                if(pautasDesenhadas === 1) currentY += 280; 
+                else currentY += 160; 
+                
+                currentX = marginX + 40;
+                svgHTML += drawStaffBlock(currentY);
+            }
+
+            let nx = currentX;
+            let ny = getNotaY(nota.linhaPos, currentY);
+
+            let noteSVG = `<g class="nota-hitbox" onclick="abrirEdicao(${nota.id})">`;
+
+            if (nota.isPausa) {
+                let pSym = "𝄽"; // Semicolcheia padrao de pausa musical text
+                if(nota.valor >= 1) pSym = "𝄻";
+                else if(nota.valor === 0.5) pSym = "𝄾";
+                else if(nota.valor <= 0.25) pSym = "𝄿";
+                noteSVG += `<text x="${nx-10}" y="${currentY + 45}" font-size="35" fill="black">${pSym}</text>`;
+            } 
+            else {
+                if(nota.opcional) {
+                    noteSVG += `<text x="${nx - 20}" y="${ny + 6}" font-size="20" font-weight="bold" fill="black">(</text>`;
+                    noteSVG += `<text x="${nx + 13}" y="${ny + 6}" font-size="20" font-weight="bold" fill="black">)</text>`;
+                }
+
+                               // Visual das Cabeças conforme solicitado
+                let fill = "white";
+                let innerExtras = "";
+                
+                if(nota.tecnica === 'presa') fill = "black";
+                else if(nota.tecnica === 'chiado') fill = "url(#pat-chiado)";
+                else if(nota.tecnica === 'soltachiado') fill = "url(#pat-sc)";
+                else if(nota.tecnica === 'caxixi') {
+                    fill = "white";
+                    innerExtras = `<circle cx="${nx}" cy="${ny}" r="4" fill="black"/>`;
+                }
+
+                noteSVG += `<ellipse cx="${nx}" cy="${ny}" rx="11" ry="8" fill="${fill}" stroke="black" stroke-width="2"/>`;
+                noteSVG += innerExtras;
+
+                if(nota.abafado) {
+                    noteSVG += `<text x="${nx - 6}" y="${currentY + lineSpacing*4 + 25}" font-size="16" font-weight="bold" fill="black">X</text>`;
+                }
+                if(nota.pontuado) {
+                    noteSVG += `<circle cx="${nx + 18}" cy="${ny}" r="3" fill="black"/>`;
+                }
+
+                // Hastes (Sempre desenhadas para notas que não são pausa)
+                let dir = (nota.linhaPos >= 3) ? 1 : -1; 
+                let sy1 = ny + (dir === 1 ? 8 : -8);
+                let sy2 = ny + (dir === 1 ? 35 : -35);
+                let hx = nx + (dir === 1 ? -10 : 10);
+                
+                noteSVG += `<line x1="${hx}" y1="${sy1}" x2="${hx}" y2="${sy2}" stroke="black" stroke-width="2"/>`;
+                
+                if(nota.valor <= 0.5) {
+                    noteSVG += `<path d="M ${hx} ${sy2} Q ${hx+10} ${sy2+(dir===1?-10:10)} ${hx+15} ${sy2+(dir===1?-20:20)}" fill="transparent" stroke="black" stroke-width="2"/>`;
+                }
+                if(nota.valor <= 0.25) {
+                    let sy3 = sy2 + (dir===1?-8:8);
+                    noteSVG += `<path d="M ${hx} ${sy3} Q ${hx+10} ${sy3+(dir===1?-10:10)} ${hx+15} ${sy3+(dir===1?-20:20)}" fill="transparent" stroke="black" stroke-width="2"/>`;
+                }
+            }
+
+            noteSVG += `</g>`;
+            svgHTML += noteSVG;
+            currentX += noteSpacing;
+        });
+
+        // LEGENDA E MAPEAMENTO (Somente abaixo da Primeira Pauta, na altura Y=50)
+        let legY = 50 + 100;
+        
+        let m1 = getNomeTecnica(document.getElementById('map-1').value);
+        let m2 = getNomeTecnica(document.getElementById('map-2').value);
+        let m3 = getNomeTecnica(document.getElementById('map-3').value);
+        let m4 = getNomeTecnica(document.getElementById('map-4').value);
+        let m5 = getNomeTecnica(document.getElementById('map-5').value);
+
+        svgHTML += `
+            <text x="${marginX}" y="${legY}" font-size="14" font-family="monospace" fill="black" font-weight="bold">
+                () - Nota opcional  |  X - Cabaça na barriga  |  / - Pausa  |  . - 50% de valor a mais a nota
+            </text>
+            <text x="${marginX}" y="${legY + 25}" font-size="15" font-family="sans-serif" fill="black" font-weight="bold">Mapeamento Escolhido:</text>
+            <text x="${marginX}" y="${legY + 45}" font-size="14" font-family="sans-serif" fill="black">1- ${m1}</text>
+            <text x="${marginX}" y="${legY + 65}" font-size="14" font-family="sans-serif" fill="black">2- ${m2}</text>
+            <text x="${marginX}" y="${legY + 85}" font-size="14" font-family="sans-serif" fill="black">3- ${m3}</text>
+            <text x="${marginX}" y="${legY + 105}" font-size="14" font-family="sans-serif" fill="black">4- ${m4}</text>
+            <text x="${marginX}" y="${legY + 125}" font-size="14" font-family="sans-serif" fill="black">5- ${m5}</text>
+        `;
+
+        let finalHeight = currentY + 180;
+        if(pautasDesenhadas === 1) finalHeight += 120; // Garante espaço se só tiver 1 pauta
+        
+        svgHTML = svgHTML.replace('height="100%"', `height="${finalHeight}"`);
+        svgHTML += `</svg>`;
+
+        document.getElementById('svg-container').innerHTML = svgHTML;
+    }
+
+    // SALVAR E CARREGAR
+    function fecharModais() {
+        document.querySelectorAll('.modal-overlay').forEach(m => m.style.display = 'none');
+        notaSendoEditada = null;
+    }
+
+    function abrirModalSalvar() {
+        document.getElementById('input-nome').value = currentTitle;
+        document.getElementById('input-compositor').value = currentComposer;
+        document.getElementById('modal-salvar').style.display = 'flex';
+    }
+
+    function confirmarSalvar() {
+        const nome = document.getElementById('input-nome').value.trim();
+        const comp = document.getElementById('input-compositor').value.trim();
+        
+        if(!nome) {
+            alert("O nome da música é obrigatório!");
+            return;
+        }
+
+        const dados = { titulo: nome, compositor: comp, cabaca: cabacaState, notas: partitura };
+        localStorage.setItem("berimbau_" + nome, JSON.stringify(dados));
+        
+        currentTitle = nome;
+        currentComposer = comp;
+        atualizarCabecalho();
+        fecharModais();
+        alert("Composição salva com sucesso!");
+    }
+
+    function abrirModalCarregar() {
+        const listaDiv = document.getElementById('lista-salvos');
+        listaDiv.innerHTML = "";
+        
+        let temSalvos = false;
+        for (let i = 0; i < localStorage.length; i++) {
+            const key = localStorage.key(i);
+            if (key.startsWith("berimbau_")) {
+                temSalvos = true;
+                const nomeMusica = key.replace("berimbau_", "");
+                
+                listaDiv.innerHTML += `
+                    <div class="save-list-item">
+                        <span>🎵 ${nomeMusica}</span>
+                        <div>
+                            <button class="btn btn-action" onclick="carregarMusica('${key}')">✅</button>
+                            <button class="btn btn-danger" onclick="deletarMusica('${key}')">🗑</button>
+                        </div>
+                    </div>
+                `;
+            }
+        }
+        
+        if(!temSalvos) listaDiv.innerHTML = "<p style='text-align:center;'>Nenhuma partitura salva ainda.</p>";
+        document.getElementById('modal-carregar').style.display = 'flex';
+    }
+
+    function carregarMusica(key) {
+        try {
+            const dados = JSON.parse(localStorage.getItem(key));
+            partitura = dados.notas || [];
+            cabacaState = dados.cabaca !== undefined ? dados.cabaca : 4;
+            currentTitle = dados.titulo || "Sem Título";
+            currentComposer = dados.compositor || "";
+            
+            atualizarCabecalho();
+            renderizar();
+            fecharModais();
+        } catch (e) {
+            alert("Erro ao carregar o arquivo.");
+        }
+    }
+
+    function deletarMusica(key) {
+        if(confirm("Deseja deletar permanentemente esta música da memória?")) {
+            localStorage.removeItem(key);
+            abrirModalCarregar();
+        }
+    }
+
+    function atualizarCabecalho() {
+        const header = document.getElementById('sheet-header');
+        if(currentTitle) {
+            header.style.display = 'block';
+            document.getElementById('sheet-title').innerText = currentTitle;
+            document.getElementById('sheet-composer').innerText = currentComposer ? currentComposer : "";
+        } else {
+            header.style.display = 'none';
+        }
+    }
+
+    function imprimir() {
+        if(!currentTitle) alert("Lembre-se que é legal salvar a música e dar um nome para ela sair com título na impressão!");
+        window.print();
+    }
+
+    // Inicia a tela
+    renderizar();
+
 </script>
 </body>
 </html>
